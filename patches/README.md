@@ -40,6 +40,7 @@ patches/
 │
 ├── docs/                              ← Documentation
 │   ├── TESTING_GUIDE.md               ← Testing methodology (both patches)
+│   ├── TESTING_MATRIX.md              ← Valid vs misleading test methods
 │   ├── DEPLOYMENT_CHECKLIST.md        ← VPS deployment guide (both patches)
 │   ├── LOCAL_TEST_RESULTS.md          ← Test results (both patches, 2026-03-07)
 │   │
@@ -64,8 +65,9 @@ patches/
 
 ### For Testing (AI Assistants)
 1. **[docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)** - Methodology for both patches
-2. **[docs/MULTIBUBBLE_COMMANDS.md](docs/MULTIBUBBLE_COMMANDS.md)** - CLI command examples
-3. **[docs/LOCAL_TEST_RESULTS.md](docs/LOCAL_TEST_RESULTS.md)** - Latest test results (2026-03-07)
+2. **[docs/TESTING_MATRIX.md](docs/TESTING_MATRIX.md)** - What methods are valid vs misleading
+3. **[docs/MULTIBUBBLE_COMMANDS.md](docs/MULTIBUBBLE_COMMANDS.md)** - CLI command examples
+4. **[docs/LOCAL_TEST_RESULTS.md](docs/LOCAL_TEST_RESULTS.md)** - Latest test results (2026-03-07)
 
 ### For VPS Deployment
 1. **[docs/DEPLOYMENT_CHECKLIST.md](docs/DEPLOYMENT_CHECKLIST.md)** - Complete guide (both patches)
