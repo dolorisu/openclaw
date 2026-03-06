@@ -7,7 +7,7 @@ are sent as multiple bubbles in both delivery paths:
 - deliver-*.js (tool/message path)
 - channel-web-*.js + web-*.js (auto-reply group/direct path)
 
-Supports: --channels whatsapp,telegram (default: whatsapp only)
+Supports: --channels whatsapp,telegram (default: both)
 
 Designed to survive different OpenClaw install layouts.
 """
@@ -296,8 +296,8 @@ def main() -> int:
     parser.add_argument("--force", action="store_true", help="Force re-patch or upgrade existing patch to new channels")
     parser.add_argument(
         "--channels",
-        default="whatsapp",
-        help="Comma-separated list of channels to enable multi-bubble (default: whatsapp). Example: --channels whatsapp,telegram",
+        default="whatsapp,telegram",
+        help="Comma-separated list of channels to enable multi-bubble (default: whatsapp,telegram). Example: --channels whatsapp,telegram",
     )
     parser.add_argument(
         "--scan-root",

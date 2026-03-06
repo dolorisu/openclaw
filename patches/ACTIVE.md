@@ -25,11 +25,11 @@ python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
 
 ### 2. Apply Multi-Bubble Patch
 ```bash
-# Both WhatsApp + Telegram
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram
-
-# WhatsApp only (default)
+# Default: WhatsApp + Telegram
 python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict
+
+# Custom single channel
+python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --channels whatsapp
 ```
 
 ### 3. Apply Progressive Updates Patch
