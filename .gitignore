@@ -1,0 +1,45 @@
+# macOS
+.DS_Store
+
+# Runtime / session data (changes too often, not useful to track)
+agents/
+canvas/
+completions/
+credentials/
+devices/
+identity/
+logs/
+update-check.json
+cron/
+delivery-queue/
+
+# Workspace state
+workspace/**/.openclaw/
+workspace/doloris/memory/heartbeat-state.json
+
+# Media
+media/
+
+# SQLite / db files
+**/*.db
+**/*.sqlite
+
+# Config backups
+*.bak
+*.bak.*
+
+# Sensitive
+agents/*/agent/auth-profiles.json
+exec-approvals.json
+
+# Workspace memory (daily logs — optional, uncomment to exclude)
+# workspace/doloris/memory/
+# workspace/miku/memory/
+
+# Keep automation scripts tracked in git
+!scripts/
+!scripts/*.sh
+openclaw.json
+backups/
+openclaw.json.bak
+openclaw.json.bak.*

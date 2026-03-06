@@ -1,0 +1,16 @@
+OpenClaw multi-bubble quickstart
+
+1) Audit
+python3 ~/.openclaw/patches/apply-multibubble-dist-patch.py --status
+
+2) Safe apply (with rollback on error)
+python3 ~/.openclaw/patches/apply-multibubble-dist-patch.py --strict
+
+3) Restart gateway
+systemctl --user restart openclaw-gateway
+systemctl --user status openclaw-gateway --no-pager -l
+
+4) Verify in WhatsApp
+- send /reset
+- trigger 3-4 paragraph group reply
+- confirm separate bubbles
