@@ -46,3 +46,4 @@ openclaw.json.bak.*
 reports/*.json
 reports/*.md
 !reports/README.md
+artifacts/
