@@ -80,8 +80,9 @@ openclaw agent --channel whatsapp --to +6289669848875 \
 | `ACTIVE.md` | This file (quick reference) |
 | `apply-multibubble-patch.py` | Multi-bubble patch script |
 | `apply-progressive-patch.sh` | Progressive updates script |
-| `docs/HOW_TO_TEST.md` | Testing methodology for AI |
-| `docs/DEPLOYMENT_CHECKLIST.md` | VPS deployment guide |
+| `docs/TESTING_GUIDE.md` | Testing methodology (both patches) |
+| `docs/DEPLOYMENT_CHECKLIST.md` | VPS deployment guide (both patches) |
+| `docs/LOCAL_TEST_RESULTS.md` | Latest test results (2026-03-07) |
 
 ---
 

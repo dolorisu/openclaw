@@ -1,4 +1,7 @@
-# Multi-Bubble Patch Testing Guide
+# Multi-Bubble Patch - CLI Command Reference
+
+**Scope:** Multi-bubble patch only (NOT progressive updates)  
+**Purpose:** CLI commands for testing multi-bubble functionality
 
 This guide shows how to test multi-bubble functionality via CLI without manual user interaction.
 

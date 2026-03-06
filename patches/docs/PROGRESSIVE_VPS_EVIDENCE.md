@@ -1,8 +1,12 @@
-# Before vs After Progressive Updates Patch - Real Evidence
+# Progressive Updates Patch - VPS Evidence (Before Patch)
+
+**Scope:** Progressive updates patch only (NOT multi-bubble)  
+**Source:** WhatsApp chat export from VPS (2026-03-06, before patch)  
+**Purpose:** Real-world evidence of message batching problem
+
+---
 
 ## Evidence from Production VPS (Before Patch)
-
-**Source:** WhatsApp chat export from 2026-03-06 (yesterday before patch applied)
 
 ### Example 1: File Organizer Task (22:57:13 - 22:57:23)
 
