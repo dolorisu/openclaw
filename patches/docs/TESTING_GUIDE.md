@@ -42,6 +42,21 @@ openclaw agent --channel whatsapp --to +6289669848875 --message "test message" -
 
 **Output:** CLI akan print response text yang digenerate agent.
 
+## IMPORTANT: Realtime Test Caveat
+
+`openclaw agent --channel ... --deliver` berguna untuk functional smoke test, **TAPI** tidak selalu representatif untuk realtime progressive UX di chat app.
+
+Pada beberapa runtime path, command ini bisa terlihat seperti progress dibuffer lalu delivered beruntun saat run selesai.
+
+Untuk validasi realtime end-user behavior, gunakan metode berikut:
+1. Kirim prompt langsung dari WhatsApp/Telegram app (human-initiated inbound)
+2. Observasi arrival pattern di app
+3. Cocokkan dengan session timestamps sebagai supporting evidence
+
+**Rule:**
+- `openclaw agent` = valid untuk smoke test format/output
+- Prompt dari app = valid untuk realtime/progressive UX verification
+
 ---
 
 ## Testing Strategy: 3-Layer Verification
