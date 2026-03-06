@@ -3,11 +3,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-MULTIBUBBLE_SCRIPT="$ROOT_DIR/patches/apply-multibubble-patch.py"
-PROGRESSIVE_SCRIPT="$ROOT_DIR/patches/apply-progressive-patch.sh"
-TAIL_GUARD_SCRIPT="$ROOT_DIR/patcher/apply-wa-progress-tail-guard.py"
+MULTIBUBBLE_SCRIPT="$SCRIPT_DIR/apply-multibubble-patch.py"
+PROGRESSIVE_SCRIPT="$SCRIPT_DIR/apply-progressive-patch.sh"
+TAIL_GUARD_SCRIPT="$SCRIPT_DIR/apply-wa-progress-tail-guard.py"
 
 MODE="apply"
 RESTART_GATEWAY=1

@@ -5,7 +5,7 @@ Designed for seamless sync between deployments (VPS ↔ local).
 
 ## Scope
 - Core workspace policy files under `workspace/custom/`
-- Runtime multi-bubble patch tooling under `patches/`
+- Runtime patch tooling under `patcher/` (with `patches/` compatibility wrappers)
 - **Config backup:** `openclaw.json` tracked for deployment sync (private repo only)
 
 ## Workspace structure
@@ -22,15 +22,14 @@ Designed for seamless sync between deployments (VPS ↔ local).
 - `~/.openclaw/artifacts/generated/`
 - `~/.openclaw/artifacts/scratch/`
 
-## Multi-bubble runtime patch
+## Runtime patching
 ```bash
-# WhatsApp + Telegram (recommended)
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram
-openclaw gateway restart
+# Recommended: orchestrated sequence
+~/.openclaw/patcher/run-openclaw-patches.sh --status
+~/.openclaw/patcher/run-openclaw-patches.sh
 
-# WhatsApp only (default)
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict
+# Direct multi-bubble patcher
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --channels whatsapp,telegram
 openclaw gateway restart
 ```
 
@@ -48,9 +47,9 @@ openclaw gateway restart
    cd ~/.openclaw
    ```
 
-2. **Apply multi-bubble patch:**
+2. **Apply runtime patches:**
    ```bash
-   python3 patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram
+   ~/.openclaw/patcher/run-openclaw-patches.sh
    ```
 
 3. **Configure OpenClaw:**
@@ -100,4 +99,3 @@ openclaw gateway restart
 ## Reports
 - Generated validation outputs are stored in `reports/`.
 - Primary runtime docs remain in `patches/` and `workspace/`.
-

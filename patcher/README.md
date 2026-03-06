@@ -10,6 +10,12 @@ Discovery order prioritizes `npm root -g` and then falls back to binary-path and
 
 ## Scripts
 
+- `apply-multibubble-patch.py`
+  - Canonical multi-bubble patcher (WhatsApp + Telegram paths).
+
+- `apply-progressive-patch.sh`
+  - Canonical progressive-updates patcher.
+
 - `run-openclaw-patches.sh`
   - Orchestrator script with the correct patch sequence.
   - Runs all patchers in safe order, then restarts gateway once.
@@ -43,3 +49,8 @@ python3 ~/.openclaw/patcher/apply-wa-progress-tail-guard.py --status
 python3 ~/.openclaw/patcher/apply-wa-progress-tail-guard.py --strict
 openclaw gateway restart
 ```
+
+## Compatibility
+
+- Legacy entrypoints in `~/.openclaw/patches/` remain as wrappers and forward to scripts in `~/.openclaw/patcher/`.
+- Use `~/.openclaw/patcher/` as the canonical folder moving forward.
