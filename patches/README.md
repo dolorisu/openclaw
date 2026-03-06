@@ -1,91 +1,263 @@
 # OpenClaw Patches (WhatsApp + Telegram)
 
-This directory contains patches to improve OpenClaw's WhatsApp and Telegram experience.
+Multi-bubble responses and progressive updates patches for better UX.
 
-## Patches
+---
 
-### 1. Multi-Bubble Patch (`apply-multibubble-patch.py`)
-Enables multi-bubble responses for WhatsApp and Telegram when text contains blank-line separators (`\n\n`).
+## 🚀 Quick Start
 
-It patches both runtime paths:
-- `dist/deliver-*.js` (message tool / direct delivery)
-- `dist/channel-web-*.js` + `dist/web-*.js` (auto-reply, including group mentions)
-
-### 2. Progressive Updates Patch (`apply-progressive-patch.sh`)
-Enables block streaming to send interim text updates during long tasks instead of batching at the end.
-
-Changes: `disableBlockStreaming: true` → `false` in web channel files
-
-## Quick Start (Both Channels)
+**Apply both patches (WhatsApp + Telegram):**
 ```bash
-# Multi-bubble
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
+# Multi-bubble patch
 python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram
 
-# Progressive updates
-~/.openclaw/patches/apply-progressive-patch.sh --status
+# Progressive updates patch
 ~/.openclaw/patches/apply-progressive-patch.sh
 
 # Restart
 openclaw gateway restart
 ```
 
-## Quick Start (WhatsApp Only)
+**Check status:**
 ```bash
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict
-~/.openclaw/patches/apply-progressive-patch.sh
-openclaw gateway restart
+python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
+~/.openclaw/patches/apply-progressive-patch.sh --status
 ```
 
-## Documentation Index
-
-**Start here:**
-- `README.md` (this file) - Overview and quick start
-- `ACTIVE.md` - Quick reference for deployment commands
-
-**For testing:**
-- `HOW_TO_TEST.md` - **READ THIS FIRST** before testing patches
-- `TESTING.md` - Command reference and CLI examples
-- `TEST_RESULTS.md` - Latest test results from 2026-03-07
-
-**Technical deep dive:**
-- `PROGRESSIVE_UPDATES.md` - Root cause analysis and technical details
-
-**Scripts:**
-- `apply-multibubble-patch.py` - Multi-bubble patch (Python)
-- `apply-progressive-patch.sh` - Progressive updates patch (Bash)
+See **[ACTIVE.md](ACTIVE.md)** for quick reference.
 
 ---
 
-## Multi-Bubble Patch Modes
-- `--status`: read-only audit (patched/unpatched/unknown)
-- `--dry-run`: shows what would be changed
-- `--strict`: syntax-check each changed JS file with `node --check`; rollback everything on first failure
-- `--channels <list>`: comma-separated channels (default: `whatsapp`). Example: `--channels whatsapp,telegram`
+## 📁 File Structure
 
-## When to rerun
-- after `openclaw` update
-- after reinstall
-- after node/toolchain change
-- new server setup
-
-## Testing
-
-**Quick CLI Test (no manual typing needed):**
-```bash
-# WhatsApp
-openclaw agent --channel whatsapp --to +6289669848875 --message "/reset" --deliver
-openclaw agent --channel whatsapp --to +6289669848875 --message "jelaskan tentang AI dalam beberapa kalimat" --deliver
-
-# Telegram  
-openclaw agent --channel telegram --to 849612359 --message "/reset" --deliver
-openclaw agent --channel telegram --to 849612359 --message "jelaskan tentang neural network dalam beberapa kalimat" --deliver
+```
+patches/
+├── README.md                          ← You are here
+├── ACTIVE.md                          ← Quick command reference
+│
+├── apply-multibubble-patch.py         ← Multi-bubble patch script
+├── apply-progressive-patch.sh         ← Progressive updates patch script
+│
+├── docs/                              ← Documentation
+│   ├── HOW_TO_TEST.md                 ← Testing methodology (for AI)
+│   ├── DEPLOYMENT_CHECKLIST.md        ← VPS deployment guide
+│   ├── TEST_RESULTS.md                ← Latest test results
+│   ├── TESTING.md                     ← Command reference
+│   ├── PROGRESSIVE_UPDATES.md         ← Technical deep dive
+│   └── BEFORE_AFTER_ANALYSIS.md       ← Real VPS evidence
+│
+└── archive/                           ← Old/deprecated files
+    ├── apply-multibubble-dist-patch.py
+    ├── DEBUG_ANALYSIS.md
+    └── QUICKSTART.txt
 ```
 
-**Expected:** CLI output shows paragraphs separated by blank lines. App shows multiple bubbles.
+---
 
-**Detailed Testing Guide:** See [TESTING.md](./TESTING.md) for comprehensive testing procedures, debugging, and automated scripts.
+## 📚 Documentation Guide
 
-## Legacy Script
+### For First-Time Users
+1. **[README.md](README.md)** (this file) - Start here
+2. **[ACTIVE.md](ACTIVE.md)** - Quick commands
 
-Old script name `apply-multibubble-dist-patch.py` is deprecated. Use `apply-multibubble-patch.py` instead.
+### For Testing (AI Assistants)
+1. **[docs/HOW_TO_TEST.md](docs/HOW_TO_TEST.md)** - Testing methodology & analysis
+2. **[docs/TESTING.md](docs/TESTING.md)** - Command reference
+
+### For VPS Deployment
+1. **[docs/DEPLOYMENT_CHECKLIST.md](docs/DEPLOYMENT_CHECKLIST.md)** - Complete deployment guide
+
+### For Technical Understanding
+1. **[docs/PROGRESSIVE_UPDATES.md](docs/PROGRESSIVE_UPDATES.md)** - Root cause analysis
+2. **[docs/BEFORE_AFTER_ANALYSIS.md](docs/BEFORE_AFTER_ANALYSIS.md)** - Real evidence from VPS
+3. **[docs/TEST_RESULTS.md](docs/TEST_RESULTS.md)** - Test results with timestamps
+
+---
+
+## 🔧 Patch Details
+
+### 1. Multi-Bubble Patch (`apply-multibubble-patch.py`)
+
+**What it does:** Splits conversational responses on `\n\n` (double newline) into separate message bubbles.
+
+**Files patched:**
+- `dist/deliver-*.js` (4 files)
+- `dist/channel-web-*.js` + `dist/web-*.js` (4 files)
+
+**Features:**
+- Cross-platform (macOS, Linux, any node manager)
+- Multi-channel support (`--channels whatsapp,telegram`)
+- `--force` mode for upgrading existing patches
+- Automatic backup with rollback on failure
+- Syntax validation with `--strict`
+
+**Example:**
+```bash
+# Both channels
+python3 apply-multibubble-patch.py --strict --channels whatsapp,telegram
+
+# WhatsApp only (default)
+python3 apply-multibubble-patch.py --strict
+```
+
+### 2. Progressive Updates Patch (`apply-progressive-patch.sh`)
+
+**What it does:** Enables block streaming to send interim text updates during long tasks instead of batching at the end.
+
+**Technical change:**
+```javascript
+// BEFORE
+disableBlockStreaming: true
+
+// AFTER
+disableBlockStreaming: false
+```
+
+**Files patched:**
+- `dist/channel-web-k1Tb8tGz.js`
+- `dist/channel-web-sl83aqDv.js`
+- `dist/web-pFdwPQ7y.js`
+- `dist/web-CSq0l9pG.js`
+
+**Features:**
+- Cross-platform (auto-detects GNU sed vs BSD sed)
+- `npm root -g` discovery (works with any node manager)
+- Automatic backup before patching
+
+**Example:**
+```bash
+./apply-progressive-patch.sh --status
+./apply-progressive-patch.sh
+```
+
+---
+
+## ✅ What These Patches Fix
+
+### Before Patches
+**Multi-bubble:**
+- Long responses sent as single bubble
+- Hard to read, requires scrolling
+
+**Progressive updates:**
+- Silence during task execution
+- All progress messages arrive at once at the end
+- User doesn't know if bot is working or stuck
+
+### After Patches
+**Multi-bubble:**
+```
+Bubble 1: Blockchain adalah teknologi...
+
+Bubble 2: Setiap blok berisi data...
+
+Bubble 3: Keunggulan utama adalah...
+```
+
+**Progressive updates:**
+```
+19:03:05 - Progress: script1.py selesai
+19:03:11 - Progress: script2.py selesai  [+6s]
+19:03:19 - Progress: script3.py selesai  [+7s]
+19:03:26 - Progress: script4.py selesai  [+7s]
+```
+Real-time updates every 3-8 seconds!
+
+---
+
+## 🧪 Testing
+
+**Quick test:**
+```bash
+# Multi-bubble
+openclaw agent --channel whatsapp --to +6289669848875 \
+  --message "jelaskan blockchain dalam 3 paragraf" --deliver
+
+# Progressive updates
+openclaw agent --channel whatsapp --to +6289669848875 \
+  --message "buat 3 file demo, kasih progress tiap file selesai" --deliver
+```
+
+**Full testing guide:** See [docs/HOW_TO_TEST.md](docs/HOW_TO_TEST.md)
+
+---
+
+## 🌍 Compatibility
+
+Both scripts work on:
+- ✅ macOS (Homebrew, mise, nvm, volta, asdf)
+- ✅ Linux (system node, mise, nvm, volta, asdf, npm global)
+- ✅ Any environment with `npm` available
+
+**Discovery methods:**
+1. `npm root -g` (most reliable)
+2. Walk up from `openclaw` binary path
+3. Glob patterns for common node managers
+
+---
+
+## 📦 VPS Deployment
+
+**Pre-flight check:**
+```bash
+cd ~/.openclaw
+git pull
+python3 patches/apply-multibubble-patch.py --status
+patches/apply-progressive-patch.sh --status
+```
+
+**Deploy:**
+```bash
+python3 patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram
+patches/apply-progressive-patch.sh
+sudo systemctl restart openclaw
+```
+
+**Verify:**
+- Test with real WhatsApp/Telegram messages
+- Check session logs for incremental timestamps
+- Send `/reset` to reload workspace
+
+**Full checklist:** See [docs/DEPLOYMENT_CHECKLIST.md](docs/DEPLOYMENT_CHECKLIST.md)
+
+---
+
+## 🆘 Troubleshooting
+
+**Patch status shows "unknown":**
+```bash
+# Check OpenClaw version
+openclaw --version
+
+# Re-apply patches
+python3 apply-multibubble-patch.py --strict --force --channels whatsapp,telegram
+./apply-progressive-patch.sh
+```
+
+**Multi-bubble not working:**
+- Verify patch status: `--status` should show "patched"
+- Restart gateway: `openclaw gateway restart`
+- Send `/reset` to reload session
+
+**Progressive updates still batched:**
+- Check `disableBlockStreaming: false` in dist files:
+  ```bash
+  grep "disableBlockStreaming" /opt/homebrew/lib/node_modules/openclaw/dist/channel-web-*.js
+  ```
+- Verify gateway restarted after patch
+
+---
+
+## 🗂️ Archive
+
+Old/deprecated files moved to `archive/` for reference:
+- `apply-multibubble-dist-patch.py` - Old version (WhatsApp-only)
+- `DEBUG_ANALYSIS.md` - Old debugging notes
+- `QUICKSTART.txt` - Superseded by this README
+
+---
+
+**Created:** 2026-03-06  
+**Last updated:** 2026-03-07  
+**Status:** Production-ready, tested on local macOS  
+**VPS deployment:** Pending
