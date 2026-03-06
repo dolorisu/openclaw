@@ -1,29 +1,27 @@
 # CHANNEL_GUIDE.md
 
-Cross-channel message delivery policy.
+Cross-channel delivery policy (WhatsApp, Telegram, Discord, and others).
 
-## Defaults
-- Conversational mode: one short sentence per bubble.
-- Keep bubbles focused and readable.
+## Primary objective
+- Deliver readable multi-bubble responses by default.
 
-## Atomic list mode
-- Checklist/steps must be one bubble: heading + all items.
-- Header ends with colon (e.g., `Checklist malam ini:`).
-- Use plain list style (`1.` / `-`).
-- Task-list markdown (`- [ ]`, `- [x]`) only when user explicitly asks todo/progress tracking.
+## Default behavior (all channels)
+- Conversational replies: one short sentence per bubble. Separate with blank line (`\n\n`).
+- Example: "Sentence 1.\n\nSentence 2.\n\nSentence 3."
+- Keep each bubble focused; avoid long mixed-topic bubbles.
+- For long tasks: progress updates should be separate bubbles.
 
-## Progress-update style
-- For interactive progress, use plain text labels only.
-- Avoid markdown headings (`##`), tables, and separators.
-- Keep each checkpoint concise to avoid burst splitting.
-
-## Avoid
-- No separator-only bubbles (`---`, `***`).
-- No decorative bullets that break spacing.
-
-## Single-bubble exceptions
-Keep one bubble for contiguous content:
+## Exceptions
+Use single bubble only when content must stay contiguous:
 - code blocks
 - stack traces
 - dense command output
-- structured tables
+- structured tables that break if split
+
+## Channel/runtime constraints
+- If current channel context forbids direct multi-send in-thread, use short paragraphs separated by blank lines.
+- Prefer deterministic delivery over stylistic formatting.
+
+## Verification mindset
+- Do not claim done before checks complete.
+- If a channel behaves differently, report channel-specific behavior explicitly.
