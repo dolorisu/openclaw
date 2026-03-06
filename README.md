@@ -13,7 +13,7 @@ Fresh minimal repository for Doloris OpenClaw runtime policy and patch workflow.
 - `workspace/custom/policies/CHANNEL_GUIDE.md`
 - `workspace/custom/policies/COMMANDS.md`
 - `workspace/custom/policies/WORKFLOW.md`
-- `workspace/custom/ops/REPO_WORKFLOW.md`
+- `workspace/custom/ops/DOLORIS_REPO_WORKFLOW.md`
 
 ## Artifact directories (non-policy files)
 - `~/.openclaw/artifacts/downloads/`

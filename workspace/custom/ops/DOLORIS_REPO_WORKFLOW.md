@@ -1,4 +1,4 @@
-# REPO_WORKFLOW.md
+# DOLORIS_REPO_WORKFLOW.md
 
 Canonical git collaboration flow for this project.
 
@@ -36,3 +36,9 @@ git push -u origin feature/<name>
 ## Notes for AI agents
 - Do not change remote strategy unless owner explicitly asks.
 - Treat `self` as private working source and `origin` as reviewed publication target.
+
+## Scope guard
+- This workflow applies only to the `~/.openclaw` repository (Doloris OpenClaw workspace).
+- Do not reuse these remotes (`self`/`origin`) for unrelated projects.
+- For any other repository, follow the user's instructions for remotes/branching/PR flow.
+

@@ -19,7 +19,7 @@
 - Commit only when asked.
 - Keep commits scoped and descriptive.
 - Do not include host-local secrets/config by accident.
-- Follow `custom/ops/REPO_WORKFLOW.md` for remote/PR flow.
+- Follow `custom/ops/DOLORIS_REPO_WORKFLOW.md` for remote/PR flow.
 - Push to `self` for iterative work; push to `origin` only for reviewed updates/PR.
 
 ## Artifact placement
