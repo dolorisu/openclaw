@@ -124,14 +124,35 @@ def backup_path(path: Path) -> Path:
     return path.with_suffix(path.suffix + f".bak.{ts}")
 
 
-def build_deliver_patched(data: str, channels: list[str]) -> tuple[str | None, str]:
+def build_deliver_patched(data: str, channels: list[str], force: bool = False) -> tuple[str | None, str]:
     # Build channel check: channel === "whatsapp" || channel === "telegram"
     channel_checks = " || ".join(f'channel === "{ch}"' for ch in channels)
     marker = f'({channel_checks}) && typeof text === "string" && text.includes("\\n\\n")'
     
-    # Check if already patched (any variant)
-    if marker in data or 'channel === "whatsapp" && typeof text === "string" && text.includes("\\n\\n")' in data:
-        return None, "already patched"
+    # Check if exact patch already exists
+    if marker in data:
+        return None, "already patched (exact match)"
+    
+    # Check if old patch exists (can upgrade with --force)
+    old_patch_exists = 'channel === "whatsapp" && typeof text === "string" && text.includes("\\n\\n")' in data
+    if old_patch_exists and not force:
+        return None, "already patched (use --force to upgrade channels)"
+    
+    # If force mode and old patch exists, upgrade it
+    if old_patch_exists and force:
+        # Simple string replacement to upgrade channel check
+        for ch in ["whatsapp", "telegram", "discord"]:  # common channels
+            old = f'channel === "{ch}"'
+            if old in data and old not in channel_checks:
+                continue  # skip if not in new patch
+            # Replace standalone channel check with multi-channel check
+        upgraded = re.sub(
+            r'channel === "(whatsapp)"( && typeof text)',
+            f'({channel_checks})\\2',
+            data
+        )
+        if upgraded != data:
+            return upgraded, "upgraded from old patch"
 
     pattern = re.compile(
         r'(?P<i>^[ \t]*)const sendTextChunks = async \(text, overrides\) => \{\n(?P=i)[ \t]*throwIfAborted\(abortSignal\);\n',
@@ -220,10 +241,10 @@ def restore_backups(backups: list[tuple[Path, Path]]) -> None:
             shutil.copy2(bak, target)
 
 
-def patch_one(path: Path, kind: str, dry_run: bool, strict: bool, node_bin: str | None, channels: list[str]) -> tuple[str, str, tuple[Path, Path] | None]:
+def patch_one(path: Path, kind: str, dry_run: bool, strict: bool, node_bin: str | None, channels: list[str], force: bool = False) -> tuple[str, str, tuple[Path, Path] | None]:
     data = path.read_text(encoding="utf-8", errors="ignore")
     if kind == "deliver":
-        patched_data, note = build_deliver_patched(data, channels)
+        patched_data, note = build_deliver_patched(data, channels, force)
     else:
         patched_data, note = build_web_patched(data)
 
@@ -253,6 +274,7 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="Show what would be patched")
     parser.add_argument("--status", action="store_true", help="Show patch status only")
     parser.add_argument("--strict", action="store_true", help="Run node syntax checks; rollback all changes on failure")
+    parser.add_argument("--force", action="store_true", help="Force re-patch or upgrade existing patch to new channels")
     parser.add_argument(
         "--channels",
         default="whatsapp",
@@ -340,7 +362,7 @@ def main() -> int:
         print(f"\nPatching in: {dist}")
         for kind, f in files:
             total += 1
-            status, note, backup_info = patch_one(f, kind, args.dry_run, args.strict, node_bin, channels)
+            status, note, backup_info = patch_one(f, kind, args.dry_run, args.strict, node_bin, channels, args.force)
             if status == "patched":
                 patched += 1
                 if backup_info:
