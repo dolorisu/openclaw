@@ -43,3 +43,6 @@ openclaw.json
 backups/
 openclaw.json.bak
 openclaw.json.bak.*
+reports/*.json
+reports/*.md
+!reports/README.md

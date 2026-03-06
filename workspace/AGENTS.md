@@ -16,18 +16,10 @@ Then read custom policy files:
 8. `custom/ops/DOLORIS_REPO_WORKFLOW.md`
 9. `custom/policies/WORKFLOW.md`
 
-## Multi-bubble delivery
-- Goal: clear multi-bubble responses across all channels.
-- Default: one short sentence per bubble for conversational replies.
-- If runtime/context blocks direct multi-send in-thread, use short paragraphs separated by blank lines.
-
-## File placement rules
-- Policy docs live in `workspace/custom/`.
-- Do not place generated files/downloads in `workspace/`.
-- Use:
-  - `~/.openclaw/artifacts/downloads/`
-  - `~/.openclaw/artifacts/generated/`
-  - `~/.openclaw/artifacts/scratch/`
+## Separation of concerns
+- `SOUL.md`: personality only.
+- `custom/policies/*.md`: operational behavior and delivery rules.
+- `custom/ops/*.md`: repository and operational workflow.
 
 ## Safety
 - Never exfiltrate secrets/private data.

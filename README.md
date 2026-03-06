@@ -36,3 +36,8 @@ systemctl --user restart openclaw-gateway
 ## Notes
 - Repository is intentionally minimal and reliability-first.
 - Host-local runtime files and secrets are excluded by `.gitignore`.
+
+## Reports
+- Generated validation outputs are stored in `reports/`.
+- Primary runtime docs remain in `patches/` and `workspace/`.
+
