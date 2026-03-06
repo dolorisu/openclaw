@@ -106,7 +106,7 @@ python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict
 python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --channels whatsapp
 ```
 
-### 2. Progressive Updates Patch (`~/.openclaw/patcher/apply-progressive-patch.sh`)
+### 2. Progressive Updates Patch (`~/.openclaw/patcher/apply-progressive.sh`)
 
 **What it does:** Enables block streaming to send interim text updates during long tasks instead of batching at the end.
 
@@ -132,8 +132,8 @@ disableBlockStreaming: false
 
 **Example:**
 ```bash
-~/.openclaw/patcher/apply-progressive-patch.sh --status
-~/.openclaw/patcher/apply-progressive-patch.sh
+~/.openclaw/patcher/apply-progressive.sh --status
+~/.openclaw/patcher/apply-progressive.sh
 ```
 
 ---
@@ -209,13 +209,13 @@ Both scripts work on:
 cd ~/.openclaw
 git pull
 python3 patcher/apply-multibubble-patch.py --status
-patcher/apply-progressive-patch.sh --status
+patcher/apply-progressive.sh --status
 ```
 
 **Deploy:**
 ```bash
 python3 patcher/apply-multibubble-patch.py --strict --channels whatsapp,telegram
-patcher/apply-progressive-patch.sh
+patcher/apply-progressive.sh
 sudo systemctl restart openclaw
 ```
 
@@ -237,7 +237,7 @@ openclaw --version
 
 # Re-apply patches
 python3 apply-multibubble-patch.py --strict --force --channels whatsapp,telegram
-~/.openclaw/patcher/apply-progressive-patch.sh
+~/.openclaw/patcher/apply-progressive.sh
 ```
 
 **Multi-bubble not working:**

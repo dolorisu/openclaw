@@ -16,10 +16,10 @@ Discovery order prioritizes `npm root -g` and then falls back to binary-path and
 - `apply-multibubble-patch.py`
   - Canonical multi-bubble patcher (WhatsApp + Telegram paths).
 
-- `apply-progressive-patch.sh`
+- `apply-progressive.sh`
   - Canonical progressive-updates patcher.
 
-- `verify-multibubble-wa-tg.sh`
+- `verify-multibubble.sh`
   - Sends real test prompts to WhatsApp and Telegram.
   - Validates outbound message count from gateway logs.
   - Returns pass/fail for multi-bubble behavior.
@@ -40,7 +40,7 @@ Discovery order prioritizes `npm root -g` and then falls back to binary-path and
 ~/.openclaw/patcher/openclaw-patcher.sh --no-restart
 
 # real end-to-end verification (sends test messages)
-~/.openclaw/patcher/verify-multibubble-wa-tg.sh --wa-to +6289669848875 --tg-to @rifuki
+~/.openclaw/patcher/verify-multibubble.sh --wa-to +6289669848875 --tg-to @rifuki
 
 # direct tail-guard only
 python3 ~/.openclaw/patcher/apply-wa-progress-tail-guard.py --status

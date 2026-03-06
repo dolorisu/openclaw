@@ -53,7 +53,7 @@ ls -lh patcher/
 
 **Expected files:**
 - `apply-multibubble-patch.py`
-- `apply-progressive-patch.sh`
+- `apply-progressive.sh`
 - `HOW_TO_TEST.md`
 - `TESTING.md`
 - `TEST_RESULTS.md`
@@ -68,7 +68,7 @@ ls -lh patcher/
 python3 ~/.openclaw/patcher/apply-multibubble-patch.py --status
 
 # Progressive updates status
-~/.openclaw/patcher/apply-progressive-patch.sh --status
+~/.openclaw/patcher/apply-progressive.sh --status
 ```
 
 **Possible outcomes:**
@@ -98,10 +98,10 @@ Summary:
 ### 5. Apply Progressive Updates Patch
 
 ```bash
-~/.openclaw/patcher/apply-progressive-patch.sh
+~/.openclaw/patcher/apply-progressive.sh
 
 # Verify
-~/.openclaw/patcher/apply-progressive-patch.sh --status
+~/.openclaw/patcher/apply-progressive.sh --status
 ```
 
 **Expected output:**
@@ -318,7 +318,7 @@ Deployment considered successful if:
 **Symptoms:** All progress messages arrive at once, same timestamps.
 
 **Debug steps:**
-1. Verify patch applied: `apply-progressive-patch.sh --status`
+1. Verify patch applied: `apply-progressive.sh --status`
 2. Check `disableBlockStreaming` value:
    ```bash
    grep -n "disableBlockStreaming" /opt/homebrew/lib/node_modules/openclaw/dist/channel-web-*.js

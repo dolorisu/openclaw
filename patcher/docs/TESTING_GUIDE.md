@@ -500,12 +500,12 @@ openclaw gateway restart
 
 **Diagnosis:**
 ```bash
-~/.openclaw/patcher/apply-progressive-patch.sh --status
+~/.openclaw/patcher/apply-progressive.sh --status
 ```
 
 **Fix:**
 ```bash
-~/.openclaw/patcher/apply-progressive-patch.sh
+~/.openclaw/patcher/apply-progressive.sh
 openclaw gateway restart
 ```
 

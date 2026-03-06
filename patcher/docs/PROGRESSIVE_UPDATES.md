@@ -152,7 +152,7 @@ After applying progressive updates patch, these should improve.
 
 ### Patch Script Robustness
 
-The `apply-progressive-patch.sh` script is **cross-platform** and works with any node installation:
+The `apply-progressive.sh` script is **cross-platform** and works with any node installation:
 
 **Supported environments:**
 - ✅ macOS (Homebrew, mise, nvm, volta, asdf)
@@ -173,19 +173,19 @@ The `apply-progressive-patch.sh` script is **cross-platform** and works with any
 ```bash
 # On VPS
 cd ~/.openclaw/patcher
-~/.openclaw/patcher/apply-progressive-patch.sh --status
-~/.openclaw/patcher/apply-progressive-patch.sh
+~/.openclaw/patcher/apply-progressive.sh --status
+~/.openclaw/patcher/apply-progressive.sh
 sudo systemctl restart openclaw
 
 # Verify
-~/.openclaw/patcher/apply-progressive-patch.sh --status
+~/.openclaw/patcher/apply-progressive.sh --status
 ```
 
 ### Local Development
 ```bash
 cd ~/.openclaw/patcher
-~/.openclaw/patcher/apply-progressive-patch.sh --status
-~/.openclaw/patcher/apply-progressive-patch.sh
+~/.openclaw/patcher/apply-progressive.sh --status
+~/.openclaw/patcher/apply-progressive.sh
 openclaw gateway restart
 ```
 

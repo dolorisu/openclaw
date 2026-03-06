@@ -35,7 +35,7 @@ python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --channels whats
 
 ### 3. Apply Progressive Updates Patch
 ```bash
-~/.openclaw/patcher/apply-progressive-patch.sh
+~/.openclaw/patcher/apply-progressive.sh
 ```
 
 ### 4. Restart Gateway
@@ -79,7 +79,7 @@ openclaw agent --channel whatsapp --to +6289669848875 \
 | `README.md` | Complete guide with examples |
 | `ACTIVE.md` | This file (quick reference) |
 | `../patcher/apply-multibubble-patch.py` | Canonical multi-bubble patch script |
-| `../patcher/apply-progressive-patch.sh` | Canonical progressive updates script |
+| `../patcher/apply-progressive.sh` | Canonical progressive updates script |
 | `docs/TESTING_GUIDE.md` | Testing methodology (both patches) |
 | `docs/DEPLOYMENT_CHECKLIST.md` | VPS deployment guide (both patches) |
 | `docs/LOCAL_TEST_RESULTS.md` | Latest test results (2026-03-07) |

@@ -14,7 +14,7 @@ TG_PROMPT="$DEFAULT_PROMPT"
 usage() {
   cat <<'EOF'
 Usage:
-  verify-multibubble-wa-tg.sh --wa-to <whatsapp-number> --tg-to <telegram-target> [options]
+  verify-multibubble.sh --wa-to <whatsapp-number> --tg-to <telegram-target> [options]
 
 Required:
   --wa-to <number>     WhatsApp target (example: +6289669848875)
