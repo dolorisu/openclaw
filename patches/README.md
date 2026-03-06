@@ -34,17 +34,22 @@ openclaw gateway restart
 - after node/toolchain change
 - new server setup
 
-## Verify Behavior
+## Testing
 
-**WhatsApp:**
-1. Send `/reset`
-2. Ask: "jelaskan tentang AI dalam beberapa kalimat"
-3. Confirm multiple bubbles (one sentence per bubble)
+**Quick CLI Test (no manual typing needed):**
+```bash
+# WhatsApp
+openclaw agent --channel whatsapp --to +6289669848875 --message "/reset" --deliver
+openclaw agent --channel whatsapp --to +6289669848875 --message "jelaskan tentang AI dalam beberapa kalimat" --deliver
 
-**Telegram:**
-1. Send `/reset`
-2. Ask: "jelaskan tentang quantum computing dalam beberapa kalimat"
-3. Confirm multiple bubbles
+# Telegram  
+openclaw agent --channel telegram --to 849612359 --message "/reset" --deliver
+openclaw agent --channel telegram --to 849612359 --message "jelaskan tentang neural network dalam beberapa kalimat" --deliver
+```
+
+**Expected:** CLI output shows paragraphs separated by blank lines. App shows multiple bubbles.
+
+**Detailed Testing Guide:** See [TESTING.md](./TESTING.md) for comprehensive testing procedures, debugging, and automated scripts.
 
 ## Legacy Script
 
