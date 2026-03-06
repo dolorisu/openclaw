@@ -22,6 +22,7 @@ Discovery order prioritizes `npm root -g` and then falls back to binary-path and
 
 - `apply-wa-progress-tail-guard.py`
   - Prevents WhatsApp progress streaming from splitting short trailing sentence fragments into a separate bubble.
+  - Skips short non-final preview updates to avoid transient duplicate/typing-only UX.
   - Keeps multi-bubble (`\n\n`) behavior unchanged.
 
 ## Usage

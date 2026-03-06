@@ -31,6 +31,7 @@ from typing import Iterable
 
 HELPER_MARKER = "const TRAILING_SENTENCE_BOUNDARY_RE = /(?:\\n{2,}|[.!?](?:[\"')\\]]+)?\\s+)/g;"
 TAIL_MARKER = "let pendingProgressTail = \"\";"
+PROGRESS_PREVIEW_MARKER = "function shouldSendProgressPreviewText(text) {"
 OLD_SPLIT_CORE = """\tconst normalized = text.replace(/\\r\\n?/g, \"\\n\");
 \tif (normalized.length < 80) return {
 \t\thead: normalized,
@@ -73,6 +74,22 @@ NORMALIZED_SNIPPET = """\t\t\t\tconst normalizedPayload = isProgressUpdate ? {
 \t\t\t\t} : payload;
 \t\t\t\tawait deliverWebReply({"""
 NORMALIZED_PATCHED = """\t\t\t\tconst normalizedPayload = isProgressUpdate ? {
+\t\t\t\t\t...payload,
+\t\t\t\t\ttext: normalizeProgressTextForWhatsApp(payload.text)
+\t\t\t\t} : payload;
+\t\t\t\tif (isProgressUpdate && typeof normalizedPayload.text === \"string\") {
+\t\t\t\t\tconst mergedText = joinProgressFragments(pendingProgressTail, normalizedPayload.text);
+\t\t\t\t\tconst split = splitTrailingProgressFragment(mergedText);
+\t\t\t\t\tpendingProgressTail = split.tail;
+\t\t\t\t\tnormalizedPayload.text = split.head;
+\t\t\t\t\tif (!normalizedPayload.text.trim() && !normalizedPayload.mediaUrl && !normalizedPayload.mediaUrls?.length) return;
+\t\t\t\t} else if (!isProgressUpdate && typeof normalizedPayload.text === \"string\" && pendingProgressTail) {
+\t\t\t\t\tnormalizedPayload.text = joinProgressFragments(pendingProgressTail, normalizedPayload.text);
+\t\t\t\t\tpendingProgressTail = \"\";
+\t\t\t\t}
+\t\t\t\tawait deliverWebReply({"""
+NORMALIZED_PATCHED_WITH_PREVIEW_GUARD = """\t\t\t\tif (isProgressUpdate && !shouldSendProgressPreviewText(payload.text) && !payload.mediaUrl && !payload.mediaUrls?.length) return;
+\t\t\t\tconst normalizedPayload = isProgressUpdate ? {
 \t\t\t\t\t...payload,
 \t\t\t\t\ttext: normalizeProgressTextForWhatsApp(payload.text)
 \t\t\t\t} : payload;
@@ -150,6 +167,15 @@ function splitTrailingProgressFragment(text) {
 \t\thead,
 \t\ttail
 \t};
+}
+function shouldSendProgressPreviewText(text) {
+\tif (typeof text !== "string") return true;
+\tconst normalized = text.replace(/\\r\\n?/g, "\\n").trim();
+\tif (!normalized) return false;
+\tif (normalized.length >= 260) return true;
+\tif (/\\n{2,}/.test(normalized)) return true;
+\tif (/^[\\s>*-]*\\d+[.)]\\s+/m.test(normalized) || /^[\\s>*-]*[-*+]\\s+/m.test(normalized)) return true;
+\treturn false;
 }
 """
 
@@ -273,10 +299,30 @@ def patch_content(text: str) -> tuple[str | None, str]:
             return None, "didSendReply marker missing"
         patched = patched.replace(marker, marker + "\n\t" + TAIL_MARKER, 1)
 
-    if NORMALIZED_PATCHED not in patched:
-        if NORMALIZED_SNIPPET not in patched:
+    if PROGRESS_PREVIEW_MARKER not in patched:
+        anchor = "async function deliverWebReply(params) {"
+        idx = patched.find(anchor)
+        if idx < 0:
+            return None, "deliverWebReply anchor missing for preview helper"
+        helper_fn = """function shouldSendProgressPreviewText(text) {
+\tif (typeof text !== \"string\") return true;
+\tconst normalized = text.replace(/\\r\\n?/g, \"\\n\").trim();
+\tif (!normalized) return false;
+\tif (normalized.length >= 260) return true;
+\tif (/\\n{2,}/.test(normalized)) return true;
+\tif (/^[\\s>*-]*\\d+[.)]\\s+/m.test(normalized) || /^[\\s>*-]*[-*+]\\s+/m.test(normalized)) return true;
+\treturn false;
+}
+"""
+        patched = patched[:idx] + helper_fn + patched[idx:]
+
+    if NORMALIZED_PATCHED_WITH_PREVIEW_GUARD not in patched:
+        if NORMALIZED_PATCHED in patched:
+            patched = patched.replace(NORMALIZED_PATCHED, NORMALIZED_PATCHED_WITH_PREVIEW_GUARD, 1)
+        elif NORMALIZED_SNIPPET in patched:
+            patched = patched.replace(NORMALIZED_SNIPPET, NORMALIZED_PATCHED_WITH_PREVIEW_GUARD, 1)
+        else:
             return None, "normalized payload snippet missing"
-        patched = patched.replace(NORMALIZED_SNIPPET, NORMALIZED_PATCHED, 1)
 
     if NO_FINAL_PATCHED not in patched:
         if NO_FINAL_SNIPPET not in patched:
@@ -318,9 +364,10 @@ def status_for(path: Path) -> tuple[str, str]:
         return "skip", "no deliverWebReply"
     has_helper = HELPER_MARKER in data
     has_tail = TAIL_MARKER in data
-    if has_helper and has_tail:
+    has_preview = PROGRESS_PREVIEW_MARKER in data
+    if has_helper and has_tail and has_preview:
         return "patched", "markers present"
-    return "unpatched", f"helper={has_helper}, tail={has_tail}"
+    return "unpatched", f"helper={has_helper}, tail={has_tail}, preview={has_preview}"
 
 
 def restore_backups(backups: list[tuple[Path, Path]]) -> None:
