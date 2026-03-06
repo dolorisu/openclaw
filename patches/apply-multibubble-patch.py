@@ -26,6 +26,7 @@ from typing import Iterable
 DELIVER_MARKER_TEMPLATE = '({channel_checks}) && typeof text === "string" && text.includes("\\n\\n")'
 WEB_PATCH_MARKER_A = 'const rawText = replyResult.text || "";'
 WEB_PATCH_MARKER_B = 'const paragraphParts = rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);'
+TELEGRAM_PATCH_MARKER = 'const markdownChunks = markdown.includes("\\n\\n") ? markdown.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean) : params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
 
 
 def run(cmd: list[str]) -> str:
@@ -233,6 +234,19 @@ def build_web_patched(text: str) -> tuple[str | None, str]:
     return "".join(patched_lines), "patched"
 
 
+def build_telegram_bot_patched(text: str) -> tuple[str | None, str]:
+    if "function buildChunkTextResolver(params)" not in text:
+        return None, "no telegram chunk resolver"
+    if TELEGRAM_PATCH_MARKER in text:
+        return None, "already patched"
+
+    old_line = 'const markdownChunks = params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
+    new_line = 'const markdownChunks = markdown.includes("\\n\\n") ? markdown.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean) : params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
+    if old_line not in text:
+        return None, "telegram chunk line not found"
+    return text.replace(old_line, new_line, 1), "patched"
+
+
 def status_deliver(path: Path) -> tuple[str, str]:
     data = path.read_text(encoding="utf-8", errors="ignore")
     # Check if any variant of multi-bubble patch exists
@@ -254,6 +268,28 @@ def status_web(path: Path) -> tuple[str, str]:
     return "unknown", "signature not found"
 
 
+def status_telegram_bot(path: Path) -> tuple[str, str]:
+    data = path.read_text(encoding="utf-8", errors="ignore")
+    if "function buildChunkTextResolver(params)" not in data:
+        return "skip", "no telegram chunk resolver"
+    if TELEGRAM_PATCH_MARKER in data:
+        return "patched", "marker present"
+    if 'const markdownChunks = params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];' in data:
+        return "unpatched", "legacy chunk resolver"
+    return "unknown", "signature not found"
+
+
+def discover_telegram_chunk_files(dist: Path) -> list[Path]:
+    files: set[Path] = set()
+    files |= set(dist.glob("pi-embedded-*.js"))
+    files |= set(dist.glob("reply-*.js"))
+    files |= set(dist.glob("subagent-registry-*.js"))
+    plugin_sdk = dist / "plugin-sdk"
+    if plugin_sdk.is_dir():
+        files |= set(plugin_sdk.glob("reply-*.js"))
+    return sorted(files)
+
+
 def restore_backups(backups: list[tuple[Path, Path]]) -> None:
     for target, bak in reversed(backups):
         if bak.exists():
@@ -264,11 +300,13 @@ def patch_one(path: Path, kind: str, dry_run: bool, strict: bool, node_bin: str 
     data = path.read_text(encoding="utf-8", errors="ignore")
     if kind == "deliver":
         patched_data, note = build_deliver_patched(data, channels, force)
-    else:
+    elif kind == "web":
         patched_data, note = build_web_patched(data)
+    else:
+        patched_data, note = build_telegram_bot_patched(data)
 
     if patched_data is None:
-        if note.startswith("already patched") or note == "no deliverWebReply":
+        if note.startswith("already patched") or note == "no deliverWebReply" or note == "no telegram chunk resolver":
             return "skipped", note, None
         return "failed", note, None
 
@@ -331,11 +369,13 @@ def main() -> int:
     if args.status:
         deliver_total = deliver_patched = deliver_unpatched = deliver_unknown = 0
         web_total = web_patched = web_unpatched = web_unknown = 0
+        telegram_total = telegram_patched = telegram_unpatched = telegram_unknown = 0
 
         for dist in dist_dirs:
             deliver_files = sorted(dist.glob("deliver-*.js"))
             web_files = sorted(list(dist.glob("channel-web-*.js")) + list(dist.glob("web-*.js")))
-            if deliver_files or web_files:
+            telegram_files = discover_telegram_chunk_files(dist)
+            if deliver_files or web_files or telegram_files:
                 print(f"\nStatus in: {dist}")
 
             for f in deliver_files:
@@ -362,9 +402,23 @@ def main() -> int:
                     web_unknown += 1
                 print(f"  web     {st:9} {f.name} ({note})")
 
+            for f in telegram_files:
+                st, note = status_telegram_bot(f)
+                if st == "skip":
+                    continue
+                telegram_total += 1
+                if st == "patched":
+                    telegram_patched += 1
+                elif st == "unpatched":
+                    telegram_unpatched += 1
+                else:
+                    telegram_unknown += 1
+                print(f"  tg-bot  {st:9} {f.name} ({note})")
+
         print("\nSummary:")
         print(f"- deliver files: {deliver_total} (patched: {deliver_patched}, unpatched: {deliver_unpatched}, unknown: {deliver_unknown})")
         print(f"- web files: {web_total} (patched: {web_patched}, unpatched: {web_unpatched}, unknown: {web_unknown})")
+        print(f"- telegram bot files: {telegram_total} (patched: {telegram_patched}, unpatched: {telegram_unpatched}, unknown: {telegram_unknown})")
         return 0
 
     total = patched = skipped = failed = would = 0
@@ -374,7 +428,8 @@ def main() -> int:
     for dist in dist_dirs:
         deliver_files = sorted(dist.glob("deliver-*.js"))
         web_files = sorted(list(dist.glob("channel-web-*.js")) + list(dist.glob("web-*.js")))
-        files = [("deliver", f) for f in deliver_files] + [("web", f) for f in web_files]
+        telegram_files = discover_telegram_chunk_files(dist)
+        files = [("deliver", f) for f in deliver_files] + [("web", f) for f in web_files] + [("telegram", f) for f in telegram_files]
         if not files:
             continue
 
