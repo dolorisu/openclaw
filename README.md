@@ -24,9 +24,14 @@ Designed for seamless sync between deployments (VPS ↔ local).
 
 ## Multi-bubble runtime patch
 ```bash
-python3 ~/.openclaw/patches/apply-multibubble-dist-patch.py --status
-python3 ~/.openclaw/patches/apply-multibubble-dist-patch.py --strict
-systemctl --user restart openclaw-gateway
+# WhatsApp + Telegram (recommended)
+python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
+python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram
+openclaw gateway restart
+
+# WhatsApp only (default)
+python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict
+openclaw gateway restart
 ```
 
 ## Collaboration model
