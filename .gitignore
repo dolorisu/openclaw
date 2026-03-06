@@ -28,7 +28,7 @@ media/
 *.bak
 *.bak.*
 
-# Sensitive
+# Sensitive (auth tokens)
 agents/*/agent/auth-profiles.json
 exec-approvals.json
 
@@ -39,7 +39,8 @@ exec-approvals.json
 # Keep automation scripts tracked in git
 !scripts/
 !scripts/*.sh
-openclaw.json
+
+# Config backups (but openclaw.json is tracked for private backup/sync between deployments)
 backups/
 openclaw.json.bak
 openclaw.json.bak.*

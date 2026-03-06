@@ -1,10 +1,12 @@
 # doloris-openclaw
 
-Fresh minimal repository for Doloris OpenClaw runtime policy and patch workflow.
+Private backup repository for Doloris OpenClaw workspace, config, and policies.  
+Designed for seamless sync between deployments (VPS ↔ local).
 
 ## Scope
 - Core workspace policy files under `workspace/custom/`
 - Runtime multi-bubble patch tooling under `patches/`
+- **Config backup:** `openclaw.json` tracked for deployment sync (private repo only)
 
 ## Workspace structure
 - `workspace/AGENTS.md` (entrypoint)
@@ -33,9 +35,55 @@ systemctl --user restart openclaw-gateway
 - Sensitive iterative context stays in `self`
 - Stable updates go to `origin` via branch + PR
 
+## Deployment Setup (Fresh Install)
+
+1. **Clone repo:**
+   ```bash
+   cd ~ && git clone git@github.doloris:dolorisu/doloris.git .openclaw
+   cd ~/.openclaw
+   ```
+
+2. **Apply multi-bubble patch:**
+   ```bash
+   python3 patches/apply-multibubble-dist-patch.py --strict
+   ```
+
+3. **Configure OpenClaw:**
+   - Edit `openclaw.json` if needed (ports, auth token, model config)
+   - Or keep synced config from repo
+
+4. **Start gateway:**
+   ```bash
+   openclaw gateway restart
+   ```
+
+5. **Verify:**
+   ```bash
+   openclaw status
+   # Test conversational response → should be multi-bubble
+   ```
+
+## Sync Between Deployments
+
+**Push changes from current deployment:**
+```bash
+cd ~/.openclaw
+git add -A
+git commit -m "chore: sync config and workspace updates"
+git push self main
+```
+
+**Pull changes to another deployment:**
+```bash
+cd ~/.openclaw
+git pull self main
+openclaw gateway restart
+```
+
 ## Notes
 - Repository is intentionally minimal and reliability-first.
-- Host-local runtime files and secrets are excluded by `.gitignore`.
+- Runtime state (sessions, logs, credentials) excluded by `.gitignore`.
+- `openclaw.json` is tracked for backup/sync (private repo only, never push to public).
 
 ## Reports
 - Generated validation outputs are stored in `reports/`.
