@@ -1,14 +1,25 @@
 # ACTIVE.md (What this file is for)
 
-This is the pointer file so we do not accidentally use legacy patch flow.
+This is the pointer file for the active multi-bubble patch script.
 
-Use this script only:
-`~/.openclaw/patches/apply-multibubble-dist-patch.py`
+**Use this script:** `~/.openclaw/patches/apply-multibubble-patch.py`
 
-Standard run order:
-1) `--status`
-2) `--strict`
-3) restart `openclaw-gateway`
-4) test `/reset` + group multi-bubble
+## Standard Run Order
 
-If docs conflict, trust `README.md` + script output.
+**For WhatsApp + Telegram:**
+```bash
+python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
+python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram
+openclaw gateway restart
+```
+
+**For WhatsApp only (default):**
+```bash
+python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
+python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict
+openclaw gateway restart
+```
+
+**Test:** Send `/reset` then ask conversational questions. Verify multi-bubble response.
+
+If docs conflict, trust `README.md` + script `--help` output.
