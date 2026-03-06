@@ -1,24 +1,39 @@
-# OpenClaw Multi-Bubble Patch (WhatsApp + Telegram)
+# OpenClaw Patches (WhatsApp + Telegram)
 
-This patch enables multi-bubble responses for WhatsApp and Telegram when text contains blank-line separators (`\n\n`).
+This directory contains patches to improve OpenClaw's WhatsApp and Telegram experience.
+
+## Patches
+
+### 1. Multi-Bubble Patch (`apply-multibubble-patch.py`)
+Enables multi-bubble responses for WhatsApp and Telegram when text contains blank-line separators (`\n\n`).
 
 It patches both runtime paths:
 - `dist/deliver-*.js` (message tool / direct delivery)
 - `dist/channel-web-*.js` + `dist/web-*.js` (auto-reply, including group mentions)
 
-**Canonical script:** `~/.openclaw/patches/apply-multibubble-patch.py`
+### 2. Progressive Updates Patch (`apply-progressive-patch.sh`)
+Enables block streaming to send interim text updates during long tasks instead of batching at the end.
 
-## Fast Path (Both Channels)
+Changes: `disableBlockStreaming: true` → `false` in web channel files
+
+## Quick Start (Both Channels)
 ```bash
+# Multi-bubble
 python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
 python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram
+
+# Progressive updates
+~/.openclaw/patches/apply-progressive-patch.sh --status
+~/.openclaw/patches/apply-progressive-patch.sh
+
+# Restart
 openclaw gateway restart
 ```
 
-## Fast Path (WhatsApp Only - Default)
+## Quick Start (WhatsApp Only)
 ```bash
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
 python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict
+~/.openclaw/patches/apply-progressive-patch.sh
 openclaw gateway restart
 ```
 
