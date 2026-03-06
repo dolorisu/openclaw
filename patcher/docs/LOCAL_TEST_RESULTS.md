@@ -210,7 +210,7 @@ Multi-bubble patch for channels: whatsapp
 - deliver files: 4 (patched: 4, unpatched: 0, unknown: 0)
 - web files: 4 (patched: 4, unpatched: 0, unknown: 0)
 
-$ ~/.openclaw/patcher/apply-progressive-patch.sh --status
+$ ~/.openclaw/patcher/apply-progressive.sh --status
   channel-web-k1Tb8tGz.js: ✅ patched
   channel-web-sl83aqDv.js: ✅ patched
   web-pFdwPQ7y.js: ✅ patched
@@ -233,7 +233,7 @@ Both patches are **SAFE TO DEPLOY** to VPS:
 - [ ] Pull latest from git: `cd ~/.openclaw && git pull`
 - [ ] Verify patch scripts exist in `patcher/` directory
 - [ ] Apply multi-bubble patch: `python3 patcher/apply-multibubble-patch.py --strict --channels whatsapp,telegram`
-- [ ] Apply progressive patch: `patcher/apply-progressive-patch.sh`
+- [ ] Apply progressive patch: `patcher/apply-progressive.sh`
 - [ ] Restart service: `sudo systemctl restart openclaw`
 - [ ] Verify patch status with `--status` commands
 - [ ] Test with real WhatsApp/Telegram messages

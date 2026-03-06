@@ -5,7 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 MULTIBUBBLE_SCRIPT="$SCRIPT_DIR/apply-multibubble-patch.py"
-PROGRESSIVE_SCRIPT="$SCRIPT_DIR/apply-progressive-patch.sh"
+PROGRESSIVE_SCRIPT="$SCRIPT_DIR/apply-progressive.sh"
 TAIL_GUARD_SCRIPT="$SCRIPT_DIR/apply-wa-progress-tail-guard.py"
 
 MODE="apply"
@@ -15,7 +15,7 @@ FORCE_MULTIBUBBLE=0
 usage() {
   cat <<'EOF'
 Usage:
-  run-openclaw-patches.sh [--status] [--no-restart] [--force-multibubble]
+  openclaw-patcher.sh [--status] [--no-restart] [--force-multibubble]
 
 Options:
   --status             Show status only, do not apply patches
