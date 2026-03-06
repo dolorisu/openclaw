@@ -1,6 +1,6 @@
 # Quick Reference - Active Patches
 
-**Location:** `~/.openclaw/patches/`
+**Canonical scripts:** `~/.openclaw/patcher/` (files in `~/.openclaw/patches/` are compatibility wrappers)
 
 ---
 
@@ -27,15 +27,15 @@
 ### 2. Apply Multi-Bubble Patch
 ```bash
 # Default: WhatsApp + Telegram
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict
 
 # Custom single channel
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --channels whatsapp
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --channels whatsapp
 ```
 
 ### 3. Apply Progressive Updates Patch
 ```bash
-~/.openclaw/patches/apply-progressive-patch.sh
+~/.openclaw/patcher/apply-progressive-patch.sh
 ```
 
 ### 4. Restart Gateway
@@ -78,8 +78,8 @@ openclaw agent --channel whatsapp --to +6289669848875 \
 |------|---------|
 | `README.md` | Complete guide with examples |
 | `ACTIVE.md` | This file (quick reference) |
-| `apply-multibubble-patch.py` | Multi-bubble patch script |
-| `apply-progressive-patch.sh` | Progressive updates script |
+| `../patcher/apply-multibubble-patch.py` | Canonical multi-bubble patch script |
+| `../patcher/apply-progressive-patch.sh` | Canonical progressive updates script |
 | `docs/TESTING_GUIDE.md` | Testing methodology (both patches) |
 | `docs/DEPLOYMENT_CHECKLIST.md` | VPS deployment guide (both patches) |
 | `docs/LOCAL_TEST_RESULTS.md` | Latest test results (2026-03-07) |

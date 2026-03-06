@@ -25,13 +25,16 @@ For sequence-safe auto-runner, see `~/.openclaw/patcher/run-openclaw-patches.sh`
 
 ## 📁 File Structure
 
+Canonical scripts now live in `~/.openclaw/patcher/`.
+Files in `~/.openclaw/patches/` are compatibility wrappers.
+
 ```
 patches/
 ├── README.md                          ← You are here
 ├── ACTIVE.md                          ← Quick command reference
 │
-├── apply-multibubble-patch.py         ← Multi-bubble patch script
-├── apply-progressive-patch.sh         ← Progressive updates patch script
+├── apply-multibubble-patch.py         ← Compatibility wrapper → ../patcher/
+├── apply-progressive-patch.sh         ← Compatibility wrapper → ../patcher/
 │
 ├── docs/                              ← Documentation
 │   ├── TESTING_GUIDE.md               ← Testing methodology (both patches)
@@ -80,7 +83,7 @@ patches/
 
 ## 🔧 Patch Details
 
-### 1. Multi-Bubble Patch (`apply-multibubble-patch.py`)
+### 1. Multi-Bubble Patch (`~/.openclaw/patcher/apply-multibubble-patch.py`)
 
 **What it does:** Splits conversational responses on `\n\n` (double newline) into separate message bubbles.
 
@@ -99,13 +102,13 @@ patches/
 **Example:**
 ```bash
 # Default (WhatsApp + Telegram)
-python3 apply-multibubble-patch.py --strict
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict
 
 # Custom channels
-python3 apply-multibubble-patch.py --strict --channels whatsapp
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --channels whatsapp
 ```
 
-### 2. Progressive Updates Patch (`apply-progressive-patch.sh`)
+### 2. Progressive Updates Patch (`~/.openclaw/patcher/apply-progressive-patch.sh`)
 
 **What it does:** Enables block streaming to send interim text updates during long tasks instead of batching at the end.
 
