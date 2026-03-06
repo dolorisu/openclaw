@@ -19,6 +19,8 @@
 - Do not batch all checkpoints at the end.
 - If possible, add short pacing between checkpoints (~2-4s) to avoid message bursts.
 - Never fabricate progress, blockers, or results.
+- If a step finishes, send its `Progress:` bubble immediately before starting the next step.
+- Never place two `Progress:` lines in one outgoing bubble.
 
 ## Output location policy
 - Generated/demo files must stay under `.openclaw`:

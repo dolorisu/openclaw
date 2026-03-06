@@ -128,10 +128,24 @@ def build_deliver_patched(data: str, channels: list[str], force: bool = False) -
     # Build channel check: channel === "whatsapp" || channel === "telegram"
     channel_checks = " || ".join(f'channel === "{ch}"' for ch in channels)
     marker = f'({channel_checks}) && typeof text === "string" && text.includes("\\n\\n")'
+    sendpayload_guard = (
+        f'if (handler.sendPayload && effectivePayload.channelData && !(({channel_checks}) && '
+        'payloadSummary.mediaUrls.length === 0 && typeof payloadSummary.text === "string" && '
+        'payloadSummary.text.includes("\\n\\n"))) {'
+    )
     
-    # Check if exact patch already exists
-    if marker in data:
+    # Check if exact patch already exists (split + sendPayload guard)
+    if marker in data and sendpayload_guard in data:
         return None, "already patched (exact match)"
+
+    # If split marker exists but sendPayload guard missing, upgrade in place
+    if marker in data and sendpayload_guard not in data:
+        upgraded = data.replace(
+            'if (handler.sendPayload && effectivePayload.channelData) {',
+            sendpayload_guard
+        )
+        if upgraded != data:
+            return upgraded, "upgraded with sendPayload split guard"
     
     # Check if old patch exists (can upgrade with --force)
     old_patch_exists = 'channel === "whatsapp" && typeof text === "string" && text.includes("\\n\\n")' in data
@@ -175,7 +189,12 @@ def build_deliver_patched(data: str, channels: list[str], force: bool = False) -
     )
 
     insert_at = m.end()
-    return data[:insert_at] + block + data[insert_at:], "patched"
+    patched = data[:insert_at] + block + data[insert_at:]
+    upgraded = patched.replace(
+        'if (handler.sendPayload && effectivePayload.channelData) {',
+        sendpayload_guard
+    )
+    return upgraded, "patched"
 
 
 def build_web_patched(text: str) -> tuple[str | None, str]:
@@ -249,7 +268,7 @@ def patch_one(path: Path, kind: str, dry_run: bool, strict: bool, node_bin: str 
         patched_data, note = build_web_patched(data)
 
     if patched_data is None:
-        if note in ("already patched", "no deliverWebReply"):
+        if note.startswith("already patched") or note == "no deliverWebReply":
             return "skipped", note, None
         return "failed", note, None
 
