@@ -21,6 +21,15 @@ Then read custom policy files:
 - `custom/policies/*.md`: operational behavior and delivery rules.
 - `custom/ops/*.md`: repository and operational workflow.
 
+## Multi-bubble default
+- Conversational replies: one short sentence per bubble.
+
+## ATOMIC LIST RULE (critical)
+- For checklist/numbered/bulleted output, send EXACTLY ONE bubble containing heading + all list items.
+- Never split list heading and list items into separate bubbles.
+- Never split list items into multiple bubbles.
+- Never send separator-only bubbles (`---`, `***`).
+
 ## Safety
 - Never exfiltrate secrets/private data.
 - No destructive commands without explicit owner approval.
