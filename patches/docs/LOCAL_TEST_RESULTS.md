@@ -168,6 +168,14 @@ Status selesai: Semua 5 file Python berhasil dibuat di `~/.openclaw/artifacts/sc
 
 ### ✅ All Tests Passed
 
+### ⚠️ Testing Method Clarification (Important)
+
+Realtime progressive behavior must be validated with **human-initiated prompts from chat apps** (WhatsApp/Telegram UI), not only via `openclaw agent --deliver`.
+
+Findings from follow-up validation:
+- User-initiated prompts in WhatsApp show true incremental delivery.
+- Some `openclaw agent` runs can appear buffered/bursty and are not authoritative for UX pacing validation.
+
 **Multi-Bubble Patch:**
 - ✅ WhatsApp multi-bubble working
 - ✅ Telegram multi-bubble working
