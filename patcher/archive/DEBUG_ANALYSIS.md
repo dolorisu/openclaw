@@ -178,7 +178,7 @@ ls -t ~/.local/share/mise/installs/node/24.14.0/lib/node_modules/openclaw/dist/w
 
 ### Patch Files (Gateway Layer - INACTIVE)
 ```
-~/.openclaw/patches/
+~/.openclaw/patcher/
 ├── apply-multibubble-patch.py      ← Automated patch script
 ├── channel.ts.patched              ← Reference patched file
 ├── README.md                       ← Full documentation

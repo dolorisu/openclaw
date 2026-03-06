@@ -1,18 +1,18 @@
 # Quick Reference - Active Patches
 
-**Canonical scripts:** `~/.openclaw/patcher/` (files in `~/.openclaw/patches/` are compatibility wrappers)
+**Canonical scripts:** `~/.openclaw/patcher/`
 
 ---
 
 ## 🎯 One-Liner Deploy (Most Common)
 
 ```bash
-~/.openclaw/patcher/run-openclaw-patches.sh
+~/.openclaw/patcher/openclaw-patcher.sh
 ```
 
 **Status all patchers:**
 ```bash
-~/.openclaw/patcher/run-openclaw-patches.sh --status
+~/.openclaw/patcher/openclaw-patcher.sh --status
 ```
 
 ---
@@ -21,7 +21,7 @@
 
 ### 1. Check Status
 ```bash
-~/.openclaw/patcher/run-openclaw-patches.sh --status
+~/.openclaw/patcher/openclaw-patcher.sh --status
 ```
 
 ### 2. Apply Multi-Bubble Patch
@@ -50,7 +50,7 @@ sudo systemctl restart openclaw
 ### 5. Verify
 ```bash
 # Check patch status
-~/.openclaw/patcher/run-openclaw-patches.sh --status
+~/.openclaw/patcher/openclaw-patcher.sh --status
 
 # Check gateway running
 pgrep -fl openclaw
@@ -91,7 +91,7 @@ openclaw agent --channel whatsapp --to +6289669848875 \
 ### Update After OpenClaw Upgrade
 ```bash
 npm update -g openclaw
-~/.openclaw/patcher/run-openclaw-patches.sh --force-multibubble
+~/.openclaw/patcher/openclaw-patcher.sh --force-multibubble
 ```
 
 ### Rollback Patches
@@ -108,7 +108,7 @@ openclaw gateway restart
 
 ### Force Re-patch
 ```bash
-~/.openclaw/patcher/run-openclaw-patches.sh --force-multibubble
+~/.openclaw/patcher/openclaw-patcher.sh --force-multibubble
 ```
 
 ---

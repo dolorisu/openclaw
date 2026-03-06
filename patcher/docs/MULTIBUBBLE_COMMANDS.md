@@ -106,7 +106,7 @@ openclaw agent --channel telegram --to 849612359 --message "ceritakan tentang se
 
 **Check 1: Patch applied?**
 ```bash
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --status
 ```
 
 **Check 2: Session loaded new CHANNEL_GUIDE.md?**
@@ -140,7 +140,7 @@ Should show matches if Telegram patched.
 
 **Solution:** Apply patch
 ```bash
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --channels whatsapp,telegram
 openclaw gateway restart
 ```
 
@@ -148,7 +148,7 @@ openclaw gateway restart
 
 **Solution:** Upgrade patch with --force
 ```bash
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --force --channels whatsapp,telegram
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --force --channels whatsapp,telegram
 openclaw gateway restart
 ```
 
@@ -210,9 +210,9 @@ tail -50 "$SESSION_FILE" | jq -r '
 
 **Fix:**
 ```bash
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --status
 # If unpatched or wrong channels:
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --force --channels whatsapp,telegram
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --force --channels whatsapp,telegram
 openclaw gateway restart
 ```
 
@@ -240,4 +240,4 @@ openclaw gateway restart
 
 ### VPS Deploy
 - Always run `--status` after `git pull` to check if OpenClaw version changed
-- Reapply patch after OpenClaw updates: `npm update -g openclaw && python3 patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram`
+- Reapply patch after OpenClaw updates: `npm update -g openclaw && python3 patcher/apply-multibubble-patch.py --strict --channels whatsapp,telegram`

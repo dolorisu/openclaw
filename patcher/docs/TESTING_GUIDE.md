@@ -482,12 +482,12 @@ chmod +x quick-test.sh
 
 **Diagnosis:**
 ```bash
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --status
 ```
 
 **Fix:**
 ```bash
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --channels whatsapp,telegram
 openclaw gateway restart
 ```
 
@@ -500,12 +500,12 @@ openclaw gateway restart
 
 **Diagnosis:**
 ```bash
-~/.openclaw/patches/apply-progressive-patch.sh --status
+~/.openclaw/patcher/apply-progressive-patch.sh --status
 ```
 
 **Fix:**
 ```bash
-~/.openclaw/patches/apply-progressive-patch.sh
+~/.openclaw/patcher/apply-progressive-patch.sh
 openclaw gateway restart
 ```
 

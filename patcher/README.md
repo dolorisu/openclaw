@@ -10,16 +10,14 @@ Discovery order prioritizes `npm root -g` and then falls back to binary-path and
 
 ## Scripts
 
+- `openclaw-patcher.sh` (main gateway)
+  - Primary `.sh` entrypoint for day-to-day use.
+
 - `apply-multibubble-patch.py`
   - Canonical multi-bubble patcher (WhatsApp + Telegram paths).
 
 - `apply-progressive-patch.sh`
   - Canonical progressive-updates patcher.
-
-- `run-openclaw-patches.sh`
-  - Orchestrator script with the correct patch sequence.
-  - Runs all patchers in safe order, then restarts gateway once.
-  - Also supports `--status` to check all patch states in one command.
 
 - `verify-multibubble-wa-tg.sh`
   - Sends real test prompts to WhatsApp and Telegram.
@@ -34,12 +32,12 @@ Discovery order prioritizes `npm root -g` and then falls back to binary-path and
 ## Usage
 
 ```bash
-~/.openclaw/patcher/run-openclaw-patches.sh --status
-~/.openclaw/patcher/run-openclaw-patches.sh
+~/.openclaw/patcher/openclaw-patcher.sh --status
+~/.openclaw/patcher/openclaw-patcher.sh
 
 # optional flags
-~/.openclaw/patcher/run-openclaw-patches.sh --force-multibubble
-~/.openclaw/patcher/run-openclaw-patches.sh --no-restart
+~/.openclaw/patcher/openclaw-patcher.sh --force-multibubble
+~/.openclaw/patcher/openclaw-patcher.sh --no-restart
 
 # real end-to-end verification (sends test messages)
 ~/.openclaw/patcher/verify-multibubble-wa-tg.sh --wa-to +6289669848875 --tg-to @rifuki
@@ -50,7 +48,6 @@ python3 ~/.openclaw/patcher/apply-wa-progress-tail-guard.py --strict
 openclaw gateway restart
 ```
 
-## Compatibility
+Use `~/.openclaw/patcher/` as the only script location.
 
-- Legacy entrypoints in `~/.openclaw/patches/` remain as wrappers and forward to scripts in `~/.openclaw/patcher/`.
-- Use `~/.openclaw/patcher/` as the canonical folder moving forward.
+Extended docs moved from `patches/` are available in `~/.openclaw/patcher/PATCHES.md`, `~/.openclaw/patcher/docs/`, and `~/.openclaw/patcher/archive/`.
