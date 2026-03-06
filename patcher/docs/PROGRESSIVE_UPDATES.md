@@ -172,20 +172,20 @@ The `apply-progressive-patch.sh` script is **cross-platform** and works with any
 ### VPS Deployment
 ```bash
 # On VPS
-cd ~/.openclaw/patches
-./apply-progressive-patch.sh --status
-./apply-progressive-patch.sh
+cd ~/.openclaw/patcher
+~/.openclaw/patcher/apply-progressive-patch.sh --status
+~/.openclaw/patcher/apply-progressive-patch.sh
 sudo systemctl restart openclaw
 
 # Verify
-./apply-progressive-patch.sh --status
+~/.openclaw/patcher/apply-progressive-patch.sh --status
 ```
 
 ### Local Development
 ```bash
-cd ~/.openclaw/patches
-./apply-progressive-patch.sh --status
-./apply-progressive-patch.sh
+cd ~/.openclaw/patcher
+~/.openclaw/patcher/apply-progressive-patch.sh --status
+~/.openclaw/patcher/apply-progressive-patch.sh
 openclaw gateway restart
 ```
 
@@ -213,5 +213,5 @@ openclaw gateway restart
 
 - `workspace/custom/policies/WORKFLOW.md` - Interactive progress protocol
 - `workspace/custom/policies/CHANNEL_GUIDE.md` - Multi-bubble instructions
-- `patches/README.md` - Patch overview
-- `patches/ACTIVE.md` - Quick reference
+- `patcher/PATCHES.md` - Patch overview
+- `patcher/ACTIVE.md` - Quick reference

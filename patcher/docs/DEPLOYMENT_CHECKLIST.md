@@ -48,7 +48,7 @@ git status  # Check for local changes
 git pull    # Pull from remote
 
 # Verify patches directory
-ls -lh patches/
+ls -lh patcher/
 ```
 
 **Expected files:**
@@ -65,10 +65,10 @@ ls -lh patches/
 
 ```bash
 # Multi-bubble status
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --status
 
 # Progressive updates status
-~/.openclaw/patches/apply-progressive-patch.sh --status
+~/.openclaw/patcher/apply-progressive-patch.sh --status
 ```
 
 **Possible outcomes:**
@@ -80,10 +80,10 @@ python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
 
 ```bash
 # For both WhatsApp and Telegram
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --channels whatsapp,telegram
 
 # Verify
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --status
 ```
 
 **Expected output:**
@@ -98,10 +98,10 @@ Summary:
 ### 5. Apply Progressive Updates Patch
 
 ```bash
-~/.openclaw/patches/apply-progressive-patch.sh
+~/.openclaw/patcher/apply-progressive-patch.sh
 
 # Verify
-~/.openclaw/patches/apply-progressive-patch.sh --status
+~/.openclaw/patcher/apply-progressive-patch.sh --status
 ```
 
 **Expected output:**

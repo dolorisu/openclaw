@@ -5,7 +5,7 @@ Designed for seamless sync between deployments (VPS ↔ local).
 
 ## Scope
 - Core workspace policy files under `workspace/custom/`
-- Runtime patch tooling under `patcher/` (with `patches/` compatibility wrappers)
+- Runtime patch tooling under `patcher/`
 - **Config backup:** `openclaw.json` tracked for deployment sync (private repo only)
 
 ## Workspace structure
@@ -25,8 +25,8 @@ Designed for seamless sync between deployments (VPS ↔ local).
 ## Runtime patching
 ```bash
 # Recommended: orchestrated sequence
-~/.openclaw/patcher/run-openclaw-patches.sh --status
-~/.openclaw/patcher/run-openclaw-patches.sh
+~/.openclaw/patcher/openclaw-patcher.sh --status
+~/.openclaw/patcher/openclaw-patcher.sh
 
 # Direct multi-bubble patcher
 python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --channels whatsapp,telegram
@@ -49,7 +49,7 @@ openclaw gateway restart
 
 2. **Apply runtime patches:**
    ```bash
-   ~/.openclaw/patcher/run-openclaw-patches.sh
+   ~/.openclaw/patcher/openclaw-patcher.sh
    ```
 
 3. **Configure OpenClaw:**
@@ -98,4 +98,4 @@ openclaw gateway restart
 
 ## Reports
 - Generated validation outputs are stored in `reports/`.
-- Primary runtime docs remain in `patches/` and `workspace/`.
+- Primary runtime docs remain in `patcher/` and `workspace/`.

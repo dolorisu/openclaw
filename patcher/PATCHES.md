@@ -9,32 +9,30 @@ Multi-bubble responses and progressive updates patches for better UX.
 **Apply both patches (WhatsApp + Telegram):**
 ```bash
 # Recommended: run orchestrator (correct sequence + restart)
-~/.openclaw/patcher/run-openclaw-patches.sh
+~/.openclaw/patcher/openclaw-patcher.sh
 ```
 
 **Check status:**
 ```bash
-~/.openclaw/patcher/run-openclaw-patches.sh --status
+~/.openclaw/patcher/openclaw-patcher.sh --status
 ```
 
 See **[ACTIVE.md](ACTIVE.md)** for quick reference.
 
-For sequence-safe auto-runner, see `~/.openclaw/patcher/run-openclaw-patches.sh`.
+For sequence-safe auto-runner, use `~/.openclaw/patcher/openclaw-patcher.sh`.
 
 ---
 
 ## 📁 File Structure
 
-Canonical scripts now live in `~/.openclaw/patcher/`.
-Files in `~/.openclaw/patches/` are compatibility wrappers.
+Canonical scripts live in `~/.openclaw/patcher/`.
 
 ```
-patches/
+patcher/
 ├── README.md                          ← You are here
 ├── ACTIVE.md                          ← Quick command reference
 │
-├── apply-multibubble-patch.py         ← Compatibility wrapper → ../patcher/
-├── apply-progressive-patch.sh         ← Compatibility wrapper → ../patcher/
+├── (scripts moved to ../patcher/)
 │
 ├── docs/                              ← Documentation
 │   ├── TESTING_GUIDE.md               ← Testing methodology (both patches)
@@ -134,8 +132,8 @@ disableBlockStreaming: false
 
 **Example:**
 ```bash
-./apply-progressive-patch.sh --status
-./apply-progressive-patch.sh
+~/.openclaw/patcher/apply-progressive-patch.sh --status
+~/.openclaw/patcher/apply-progressive-patch.sh
 ```
 
 ---
@@ -210,14 +208,14 @@ Both scripts work on:
 ```bash
 cd ~/.openclaw
 git pull
-python3 patches/apply-multibubble-patch.py --status
-patches/apply-progressive-patch.sh --status
+python3 patcher/apply-multibubble-patch.py --status
+patcher/apply-progressive-patch.sh --status
 ```
 
 **Deploy:**
 ```bash
-python3 patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram
-patches/apply-progressive-patch.sh
+python3 patcher/apply-multibubble-patch.py --strict --channels whatsapp,telegram
+patcher/apply-progressive-patch.sh
 sudo systemctl restart openclaw
 ```
 
@@ -239,7 +237,7 @@ openclaw --version
 
 # Re-apply patches
 python3 apply-multibubble-patch.py --strict --force --channels whatsapp,telegram
-./apply-progressive-patch.sh
+~/.openclaw/patcher/apply-progressive-patch.sh
 ```
 
 **Multi-bubble not working:**

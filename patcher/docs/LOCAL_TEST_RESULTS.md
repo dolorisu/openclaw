@@ -205,12 +205,12 @@ Findings from follow-up validation:
 ### Patch Status Verification
 
 ```bash
-$ python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
+$ python3 ~/.openclaw/patcher/apply-multibubble-patch.py --status
 Multi-bubble patch for channels: whatsapp
 - deliver files: 4 (patched: 4, unpatched: 0, unknown: 0)
 - web files: 4 (patched: 4, unpatched: 0, unknown: 0)
 
-$ ~/.openclaw/patches/apply-progressive-patch.sh --status
+$ ~/.openclaw/patcher/apply-progressive-patch.sh --status
   channel-web-k1Tb8tGz.js: ✅ patched
   channel-web-sl83aqDv.js: ✅ patched
   web-pFdwPQ7y.js: ✅ patched
@@ -231,9 +231,9 @@ Both patches are **SAFE TO DEPLOY** to VPS:
 ## Deployment Checklist for VPS
 
 - [ ] Pull latest from git: `cd ~/.openclaw && git pull`
-- [ ] Verify patch scripts exist in `patches/` directory
-- [ ] Apply multi-bubble patch: `python3 patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram`
-- [ ] Apply progressive patch: `patches/apply-progressive-patch.sh`
+- [ ] Verify patch scripts exist in `patcher/` directory
+- [ ] Apply multi-bubble patch: `python3 patcher/apply-multibubble-patch.py --strict --channels whatsapp,telegram`
+- [ ] Apply progressive patch: `patcher/apply-progressive-patch.sh`
 - [ ] Restart service: `sudo systemctl restart openclaw`
 - [ ] Verify patch status with `--status` commands
 - [ ] Test with real WhatsApp/Telegram messages
