@@ -11,12 +11,19 @@ Cross-channel delivery policy (WhatsApp, Telegram, Discord, and others).
 - For long tasks: progress updates should be separate bubbles.
 
 ## List block exception (important)
-- If response includes checklist/numbered steps, keep the bullet/numbered list in ONE bubble block with its heading.
-- Do not split heading and list into separate bubbles.
-- Format list block as:
-  - `Heading:` then list items on next lines (single newline, not blank-line split).
-- Example:
-  - `Checklist malam ini:\n- item 1\n- item 2\n- item 3`
+- Checklist/list responses are ATOMIC blocks.
+- Keep heading + full list in ONE bubble.
+- Use single newlines between lines inside that bubble.
+- Do not split heading/list items into separate bubbles.
+
+## List style (visual best-practice)
+- Header must end with colon: `Checklist malam ini:` / `Prioritas besok:`
+- Use plain ASCII numbering or hyphen bullets only:
+  - `1. ...` `2. ...` `3. ...`
+  - or `- ...`
+- Do not use markdown task-list markers (`- [ ]`) in chat output.
+- Do not use decorative Unicode bullets that produce odd spacing (`•\u2060` artifacts).
+- Keep list concise: 3-5 items max per block.
 
 ## Forbidden formatting artifacts
 - Never send standalone separator bubbles like `---` or `***`.
