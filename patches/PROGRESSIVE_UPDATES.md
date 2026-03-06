@@ -150,6 +150,25 @@ After applying progressive updates patch, these should improve.
 
 ## Deployment
 
+### Patch Script Robustness
+
+The `apply-progressive-patch.sh` script is **cross-platform** and works with any node installation:
+
+**Supported environments:**
+- ✅ macOS (Homebrew, mise, nvm, volta, asdf)
+- ✅ Linux (system node, mise, nvm, volta, asdf, npm global)
+- ✅ Any environment with `npm` available
+
+**Discovery methods (in order):**
+1. `npm root -g` (most reliable)
+2. Walk up from `openclaw` binary path
+3. Glob patterns for common node managers
+4. Fallback to standard paths
+
+**OS detection:**
+- Automatically detects GNU sed (Linux) vs BSD sed (macOS)
+- Uses `sed -i` on Linux, `sed -i ''` on macOS
+
 ### VPS Deployment
 ```bash
 # On VPS
