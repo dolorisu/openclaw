@@ -37,7 +37,27 @@ python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict
 openclaw gateway restart
 ```
 
-## Modes
+## Documentation Index
+
+**Start here:**
+- `README.md` (this file) - Overview and quick start
+- `ACTIVE.md` - Quick reference for deployment commands
+
+**For testing:**
+- `HOW_TO_TEST.md` - **READ THIS FIRST** before testing patches
+- `TESTING.md` - Command reference and CLI examples
+- `TEST_RESULTS.md` - Latest test results from 2026-03-07
+
+**Technical deep dive:**
+- `PROGRESSIVE_UPDATES.md` - Root cause analysis and technical details
+
+**Scripts:**
+- `apply-multibubble-patch.py` - Multi-bubble patch (Python)
+- `apply-progressive-patch.sh` - Progressive updates patch (Bash)
+
+---
+
+## Multi-Bubble Patch Modes
 - `--status`: read-only audit (patched/unpatched/unknown)
 - `--dry-run`: shows what would be changed
 - `--strict`: syntax-check each changed JS file with `node --check`; rollback everything on first failure
