@@ -50,7 +50,7 @@ openclaw gateway restart
 
 2. **Apply multi-bubble patch:**
    ```bash
-   python3 patches/apply-multibubble-dist-patch.py --strict
+   python3 patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram
    ```
 
 3. **Configure OpenClaw:**
@@ -62,11 +62,18 @@ openclaw gateway restart
    openclaw gateway restart
    ```
 
-5. **Verify:**
+5. **Verify multi-bubble working:**
    ```bash
    openclaw status
-   # Test conversational response → should be multi-bubble
+   
+   # IMPORTANT: Send /reset to load workspace files into session
+   openclaw agent --channel whatsapp --to YOUR_NUMBER --message "/reset" --deliver
+   
+   # Test conversational → should be multi-bubble
+   openclaw agent --channel whatsapp --to YOUR_NUMBER --message "jelaskan AI dalam 3 kalimat" --deliver
    ```
+   
+   Expected: CLI shows paragraphs with blank lines. App shows separate bubbles.
 
 ## Sync Between Deployments
 
