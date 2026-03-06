@@ -8,23 +8,18 @@ Multi-bubble responses and progressive updates patches for better UX.
 
 **Apply both patches (WhatsApp + Telegram):**
 ```bash
-# Multi-bubble patch
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --channels whatsapp,telegram
-
-# Progressive updates patch
-~/.openclaw/patches/apply-progressive-patch.sh
-
-# Restart
-openclaw gateway restart
+# Recommended: run orchestrator (correct sequence + restart)
+~/.openclaw/patcher/run-openclaw-patches.sh
 ```
 
 **Check status:**
 ```bash
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
-~/.openclaw/patches/apply-progressive-patch.sh --status
+~/.openclaw/patcher/run-openclaw-patches.sh --status
 ```
 
 See **[ACTIVE.md](ACTIVE.md)** for quick reference.
+
+For sequence-safe auto-runner, see `~/.openclaw/patcher/run-openclaw-patches.sh`.
 
 ---
 
@@ -92,6 +87,7 @@ patches/
 **Files patched:**
 - `dist/deliver-*.js` (4 files)
 - `dist/channel-web-*.js` + `dist/web-*.js` (4 files)
+- `dist/pi-embedded-*.js` (Telegram bot delivery path)
 
 **Features:**
 - Cross-platform (macOS, Linux, any node manager)

@@ -7,10 +7,12 @@
 ## 🎯 One-Liner Deploy (Most Common)
 
 ```bash
-cd ~/.openclaw/patches && \
-python3 apply-multibubble-patch.py --strict --channels whatsapp,telegram && \
-./apply-progressive-patch.sh && \
-openclaw gateway restart
+~/.openclaw/patcher/run-openclaw-patches.sh
+```
+
+**Status all patchers:**
+```bash
+~/.openclaw/patcher/run-openclaw-patches.sh --status
 ```
 
 ---
@@ -19,8 +21,7 @@ openclaw gateway restart
 
 ### 1. Check Status
 ```bash
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
-~/.openclaw/patches/apply-progressive-patch.sh --status
+~/.openclaw/patcher/run-openclaw-patches.sh --status
 ```
 
 ### 2. Apply Multi-Bubble Patch
@@ -49,8 +50,7 @@ sudo systemctl restart openclaw
 ### 5. Verify
 ```bash
 # Check patch status
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --status
-~/.openclaw/patches/apply-progressive-patch.sh --status
+~/.openclaw/patcher/run-openclaw-patches.sh --status
 
 # Check gateway running
 pgrep -fl openclaw
@@ -91,9 +91,7 @@ openclaw agent --channel whatsapp --to +6289669848875 \
 ### Update After OpenClaw Upgrade
 ```bash
 npm update -g openclaw
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --force --channels whatsapp,telegram
-~/.openclaw/patches/apply-progressive-patch.sh
-openclaw gateway restart
+~/.openclaw/patcher/run-openclaw-patches.sh --force-multibubble
 ```
 
 ### Rollback Patches
@@ -110,9 +108,7 @@ openclaw gateway restart
 
 ### Force Re-patch
 ```bash
-python3 ~/.openclaw/patches/apply-multibubble-patch.py --strict --force --channels whatsapp,telegram
-~/.openclaw/patches/apply-progressive-patch.sh
-openclaw gateway restart
+~/.openclaw/patcher/run-openclaw-patches.sh --force-multibubble
 ```
 
 ---
