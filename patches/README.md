@@ -39,12 +39,14 @@ patches/
 ├── apply-progressive-patch.sh         ← Progressive updates patch script
 │
 ├── docs/                              ← Documentation
-│   ├── HOW_TO_TEST.md                 ← Testing methodology (for AI)
-│   ├── DEPLOYMENT_CHECKLIST.md        ← VPS deployment guide
-│   ├── TEST_RESULTS.md                ← Latest test results
-│   ├── TESTING.md                     ← Command reference
-│   ├── PROGRESSIVE_UPDATES.md         ← Technical deep dive
-│   └── BEFORE_AFTER_ANALYSIS.md       ← Real VPS evidence
+│   ├── TESTING_GUIDE.md               ← Testing methodology (both patches)
+│   ├── DEPLOYMENT_CHECKLIST.md        ← VPS deployment guide (both patches)
+│   ├── LOCAL_TEST_RESULTS.md          ← Test results (both patches, 2026-03-07)
+│   │
+│   ├── MULTIBUBBLE_COMMANDS.md        ← Multi-bubble: CLI command reference
+│   │
+│   ├── PROGRESSIVE_UPDATES.md         ← Progressive: Technical deep dive
+│   └── PROGRESSIVE_VPS_EVIDENCE.md    ← Progressive: Real VPS evidence (batching)
 │
 └── archive/                           ← Old/deprecated files
     ├── apply-multibubble-dist-patch.py
@@ -61,16 +63,21 @@ patches/
 2. **[ACTIVE.md](ACTIVE.md)** - Quick commands
 
 ### For Testing (AI Assistants)
-1. **[docs/HOW_TO_TEST.md](docs/HOW_TO_TEST.md)** - Testing methodology & analysis
-2. **[docs/TESTING.md](docs/TESTING.md)** - Command reference
+1. **[docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)** - Methodology for both patches
+2. **[docs/MULTIBUBBLE_COMMANDS.md](docs/MULTIBUBBLE_COMMANDS.md)** - CLI command examples
+3. **[docs/LOCAL_TEST_RESULTS.md](docs/LOCAL_TEST_RESULTS.md)** - Latest test results (2026-03-07)
 
 ### For VPS Deployment
-1. **[docs/DEPLOYMENT_CHECKLIST.md](docs/DEPLOYMENT_CHECKLIST.md)** - Complete deployment guide
+1. **[docs/DEPLOYMENT_CHECKLIST.md](docs/DEPLOYMENT_CHECKLIST.md)** - Complete guide (both patches)
 
-### For Technical Understanding
-1. **[docs/PROGRESSIVE_UPDATES.md](docs/PROGRESSIVE_UPDATES.md)** - Root cause analysis
-2. **[docs/BEFORE_AFTER_ANALYSIS.md](docs/BEFORE_AFTER_ANALYSIS.md)** - Real evidence from VPS
-3. **[docs/TEST_RESULTS.md](docs/TEST_RESULTS.md)** - Test results with timestamps
+### For Technical Deep Dive
+
+**Progressive updates patch:**
+1. **[docs/PROGRESSIVE_UPDATES.md](docs/PROGRESSIVE_UPDATES.md)** - Root cause analysis & solution
+2. **[docs/PROGRESSIVE_VPS_EVIDENCE.md](docs/PROGRESSIVE_VPS_EVIDENCE.md)** - Real VPS chat logs (before patch)
+
+**Multi-bubble patch:**
+- See inline documentation in `apply-multibubble-patch.py`
 
 ---
 

@@ -1,6 +1,8 @@
-# How to Test Multi-Bubble & Progressive Updates Patches
+# Testing Guide (Both Patches)
 
-**Target audience:** AI assistants yang akan melakukan testing patches OpenClaw.
+**Scope:** Multi-bubble + Progressive updates patches  
+**Target audience:** AI assistants testing OpenClaw patches  
+**Purpose:** Comprehensive testing methodology and analysis techniques
 
 Dokumen ini menjelaskan cara testing yang BENAR untuk verify multi-bubble dan progressive updates patches. Jangan sampai salah pakai command seperti `openclaw message` (yang salah!) atau method yang tidak efektif.
 
