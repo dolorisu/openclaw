@@ -100,11 +100,11 @@ patches/
 
 **Example:**
 ```bash
-# Both channels
-python3 apply-multibubble-patch.py --strict --channels whatsapp,telegram
-
-# WhatsApp only (default)
+# Default (WhatsApp + Telegram)
 python3 apply-multibubble-patch.py --strict
+
+# Custom channels
+python3 apply-multibubble-patch.py --strict --channels whatsapp
 ```
 
 ### 2. Progressive Updates Patch (`apply-progressive-patch.sh`)
