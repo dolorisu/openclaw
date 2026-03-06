@@ -27,6 +27,21 @@ DELIVER_MARKER_TEMPLATE = '({channel_checks}) && typeof text === "string" && tex
 WEB_PATCH_MARKER_A = 'const rawText = replyResult.text || "";'
 WEB_PATCH_MARKER_B = 'const paragraphParts = rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);'
 TELEGRAM_PATCH_MARKER = 'const markdownChunks = markdown.includes("\\n\\n") ? markdown.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean) : params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
+TELEGRAM_PREVIEW_MARKER = 'const shouldSendTelegramPreviewUpdate = (payload, info) => {'
+TELEGRAM_PREVIEW_GUARD = 'if (!shouldSendTelegramPreviewUpdate(payload, info)) return;'
+
+TELEGRAM_PREVIEW_HELPER = """\tconst shouldSendTelegramPreviewUpdate = (payload, info) => {
+\t\tif (info.kind === \"final\") return true;
+\t\tif (payload.mediaUrl || payload.mediaUrls?.length) return true;
+\t\tif (typeof payload.text !== \"string\") return false;
+\t\tconst normalized = payload.text.replace(/\\r\\n?/g, \"\\n\").trim();
+\t\tif (!normalized) return false;
+\t\tif (normalized.length >= 260) return true;
+\t\tif (/\\n{2,}/.test(normalized)) return true;
+\t\tif (/^[\\s>*-]*\\d+[.)]\\s+/m.test(normalized) || /^[\\s>*-]*[-*+]\\s+/m.test(normalized)) return true;
+\t\treturn false;
+\t};
+"""
 
 
 def run(cmd: list[str]) -> str:
@@ -235,16 +250,42 @@ def build_web_patched(text: str) -> tuple[str | None, str]:
 
 
 def build_telegram_bot_patched(text: str) -> tuple[str | None, str]:
-    if "function buildChunkTextResolver(params)" not in text:
-        return None, "no telegram chunk resolver"
-    if TELEGRAM_PATCH_MARKER in text:
-        return None, "already patched"
+    patched = text
+    changed = False
 
-    old_line = 'const markdownChunks = params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
-    new_line = 'const markdownChunks = markdown.includes("\\n\\n") ? markdown.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean) : params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
-    if old_line not in text:
-        return None, "telegram chunk line not found"
-    return text.replace(old_line, new_line, 1), "patched"
+    if "function buildChunkTextResolver(params)" in patched:
+        old_line = 'const markdownChunks = params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
+        new_line = 'const markdownChunks = markdown.includes("\\n\\n") ? markdown.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean) : params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
+        if old_line in patched and TELEGRAM_PATCH_MARKER not in patched:
+            patched = patched.replace(old_line, new_line, 1)
+            changed = True
+
+    if "const splitTextIntoLaneSegments = (text) => {" in patched:
+        if TELEGRAM_PREVIEW_MARKER not in patched:
+            helper_insert_anchor = "\tconst resetDraftLaneState = (lane) => {"
+            idx = patched.find(helper_insert_anchor)
+            if idx < 0:
+                return None, "telegram preview helper anchor not found"
+            patched = patched[:idx] + TELEGRAM_PREVIEW_HELPER + patched[idx:]
+            changed = True
+
+        if TELEGRAM_PREVIEW_GUARD not in patched:
+            old_deliver = '\t\t\t\tdeliver: async (payload, info) => {\n\t\t\t\t\tconst previewButtons = (payload.channelData?.telegram)?.buttons;'
+            new_deliver = '\t\t\t\tdeliver: async (payload, info) => {\n\t\t\t\t\tif (!shouldSendTelegramPreviewUpdate(payload, info)) return;\n\t\t\t\t\tconst previewButtons = (payload.channelData?.telegram)?.buttons;'
+            if old_deliver not in patched:
+                return None, "telegram preview deliver anchor not found"
+            patched = patched.replace(old_deliver, new_deliver, 1)
+            changed = True
+
+    if not changed:
+        has_chunk = "function buildChunkTextResolver(params)" in text
+        has_preview_path = "const splitTextIntoLaneSegments = (text) => {" in text
+        if has_chunk and TELEGRAM_PATCH_MARKER in text and (not has_preview_path or TELEGRAM_PREVIEW_MARKER in text and TELEGRAM_PREVIEW_GUARD in text):
+            return None, "already patched"
+        if has_preview_path and TELEGRAM_PREVIEW_MARKER in text and TELEGRAM_PREVIEW_GUARD in text and (not has_chunk or TELEGRAM_PATCH_MARKER in text):
+            return None, "already patched"
+        return None, "no telegram patch targets"
+    return patched, "patched"
 
 
 def status_deliver(path: Path) -> tuple[str, str]:
@@ -270,12 +311,20 @@ def status_web(path: Path) -> tuple[str, str]:
 
 def status_telegram_bot(path: Path) -> tuple[str, str]:
     data = path.read_text(encoding="utf-8", errors="ignore")
-    if "function buildChunkTextResolver(params)" not in data:
-        return "skip", "no telegram chunk resolver"
-    if TELEGRAM_PATCH_MARKER in data:
-        return "patched", "marker present"
-    if 'const markdownChunks = params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];' in data:
+    has_chunk_resolver = "function buildChunkTextResolver(params)" in data
+    has_preview_path = "const splitTextIntoLaneSegments = (text) => {" in data
+    if not has_chunk_resolver and not has_preview_path:
+        return "skip", "no telegram patch targets"
+
+    chunk_ok = not has_chunk_resolver or TELEGRAM_PATCH_MARKER in data
+    preview_ok = not has_preview_path or (TELEGRAM_PREVIEW_MARKER in data and TELEGRAM_PREVIEW_GUARD in data)
+    if chunk_ok and preview_ok:
+        return "patched", "markers present"
+
+    if has_chunk_resolver and not chunk_ok and 'const markdownChunks = params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];' in data:
         return "unpatched", "legacy chunk resolver"
+    if has_preview_path and not preview_ok:
+        return "unpatched", "preview guard missing"
     return "unknown", "signature not found"
 
 
@@ -306,7 +355,7 @@ def patch_one(path: Path, kind: str, dry_run: bool, strict: bool, node_bin: str 
         patched_data, note = build_telegram_bot_patched(data)
 
     if patched_data is None:
-        if note.startswith("already patched") or note == "no deliverWebReply" or note == "no telegram chunk resolver":
+        if note.startswith("already patched") or note == "no deliverWebReply" or note == "no telegram chunk resolver" or note == "no telegram patch targets":
             return "skipped", note, None
         return "failed", note, None
 
