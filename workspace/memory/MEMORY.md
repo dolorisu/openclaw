@@ -16,8 +16,8 @@ Long-term operational memory (reliability-first).
   - `channels.whatsapp.groups["<jid>"]`
 
 ## Repo collaboration model
-- `self` (`dolorisu/doloris`) is private working repo.
-- `origin` (`rifuki/doloris-openclaw`) is upstream for reviewed updates/PR.
+- Single canonical remote is `origin` (`dolorisu/doloris`).
+- Single canonical branch is `main`.
 
 ## Guardrail
 - Do not claim success before verification.

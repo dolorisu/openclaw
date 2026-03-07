@@ -13,7 +13,7 @@
 - [x] Session log analysis confirms incremental delivery (3-8 second intervals)
 - [x] File creation verification passed (all demo files created)
 - [x] No regressions detected (multi-bubble still works after progressive patch)
-- [x] All changes committed and pushed to `self` remote (git@github.doloris:dolorisu/doloris.git)
+- [x] All changes committed and pushed to `origin/main` (https://github.com/dolorisu/doloris)
 
 **Latest commits:**
 ```

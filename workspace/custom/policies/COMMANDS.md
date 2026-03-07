@@ -57,16 +57,18 @@ Steps:
 5. Send confirmation message (include JID and path used).
 6. Instruct owner to run `/gateway-restart` immediately after this command.
 
-## `/backup-self [message]`
-Backup current work to private repo (`self`).
+## `/backup-main [message]` (preferred)
+Backup current work to canonical branch (`origin/main`).
+
+Alias:
+- `/backup-self [message]` remains accepted for backward compatibility.
 
 Execution:
 1. Check `git status -sb`.
 2. Stage safe changes (`git add -A`) excluding host-local secrets/config.
-3. Commit with provided message, or default `chore(self): backup workspace updates`.
-4. Push to `self` on current branch.
-5. Do not push to `origin` unless explicitly requested.
-6. Return commit hash + branch + push result.
+3. Commit with provided message, or default `chore(main): backup workspace updates`.
+4. Push to `origin main`.
+5. Return commit hash + branch + push result.
 
 ## `/reset`
 Reset conversational state for the current session.

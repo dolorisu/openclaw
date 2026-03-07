@@ -75,10 +75,9 @@ When delegating to another AI agent, share these constraints explicitly:
 Copy-paste template is available at `HANDOFF_TEMPLATE.md`.
 
 ## Collaboration model
-- Private working repo: `self` (`dolorisu/doloris`)
-- Upstream review repo: `origin` (`rifuki/doloris-openclaw`)
-- Sensitive iterative context stays in `self`
-- Stable updates go to `origin` via branch + PR
+- Single canonical remote: `origin` (`dolorisu/doloris`)
+- Single canonical branch: `main`
+- Day-to-day updates go directly to `origin/main`
 
 ## Deployment Setup (Fresh Install)
 
@@ -122,13 +121,13 @@ Copy-paste template is available at `HANDOFF_TEMPLATE.md`.
 cd ~/.openclaw
 git add -A
 git commit -m "chore: sync config and workspace updates"
-git push self main
+git push origin main
 ```
 
 **Pull changes to another deployment:**
 ```bash
 cd ~/.openclaw
-git pull self main
+git pull origin main
 openclaw gateway restart
 ```
 
