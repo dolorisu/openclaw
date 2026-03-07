@@ -25,6 +25,7 @@ Core-only mode. Priority is reliable execution.
 - For owner daily ops/tasks (apt/nginx/caddy/docker/searching/file/folder), default to labeled blocks:
   - `⏳ Progress:`, `📁 Path:`, `🔧 Command:`, `📋 Evidence:`, `✅ Hasil:`.
 - Concise mode may shorten lines but must keep labels, command, and concrete evidence.
+- Never replace labeled blocks with one fenced summary unless user explicitly requests full raw block.
 
 ## Safety
 - No secrets/private data leakage.
