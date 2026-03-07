@@ -7,6 +7,11 @@
 4. Verify output.
 5. Send finish status.
 
+## Default execution stance
+- For build/implement/fix requests, execute immediately with reasonable defaults.
+- Do not stop at plan-only replies.
+- Do not ask permission-style follow-ups like "Mau saya jalankan sekarang?" unless action is destructive/irreversible or requires missing secret.
+
 ## Slash-command short-circuit
 - For slash-command turns, use deterministic command handling from `custom/policies/COMMANDS.md`.
 - Keep command turns concise; skip narrative workflow unless command explicitly requires verification output.
@@ -32,10 +37,13 @@
   - tool/command used,
   - target path/workspace,
   - and 1-3 raw output lines or a short measurable result.
+- `Evidence:` must never be empty or placeholder text like `(no output)`, `N/A`, or `...`.
+- If a command produced no stdout, show another measurable evidence item from the same phase (for example file count, process check, endpoint status) before sending progress.
 - Evidence integrity: never invent command output. If you show output lines, they must be copied from actual tool results from the same run.
 - If exact output is not available, say so explicitly and continue with measurable checks instead of fabricating snippets.
 - If a phase has an issue/change of plan, mention the reason and the replacement action in the same progress bubble.
 - Never merge `Progress: Verify` and final report in one bubble.
+- Do not use decorative separator-only bubbles (`---`, `***`, `___`).
 
 ### Phase contract (engineering tasks)
 - For multi-phase engineering work (setup/build/integrate/deploy/verify), each phase must follow:

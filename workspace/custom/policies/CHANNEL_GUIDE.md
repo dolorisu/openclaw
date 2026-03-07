@@ -62,6 +62,7 @@ Use single bubble only when content must stay contiguous:
 - Do not use decorative separators (`---`) as standalone bubbles.
 - For anti-burst pacing claims, do not write "delay/jeda" text unless actual wait command was executed.
 - Do not send duplicate consecutive bubbles with identical content.
+- Avoid standalone heading-only bubbles like `Step 1:`/`Step 2:` without command+evidence payload.
 
 ## Readability budget
 - Avoid overly dense mega-bubbles in final report.
@@ -83,3 +84,4 @@ Use single bubble only when content must stay contiguous:
 - Do not claim done before checks complete.
 - If a channel behaves differently, report channel-specific behavior explicitly.
 - Before finalizing text, self-check: "Does the reply contain `\n\n` between ideas?"
+- Avoid permission-question bubbles for normal engineering tasks (execute first, ask only when truly blocked).
