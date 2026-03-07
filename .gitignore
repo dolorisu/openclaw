@@ -13,6 +13,11 @@ update-check.json
 cron/
 delivery-queue/
 
+# Local runtime/test artifacts
+patcher/__pycache__/
+browser/
+telegram/
+
 # Workspace state
 workspace/**/.openclaw/
 workspace/doloris/memory/heartbeat-state.json

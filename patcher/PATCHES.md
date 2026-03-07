@@ -10,6 +10,10 @@ Multi-bubble responses and progressive updates patches for better UX.
 ```bash
 # Recommended: run orchestrator (correct sequence + restart)
 ~/.openclaw/patcher/openclaw-patcher.sh
+
+# Explicit mode
+~/.openclaw/patcher/openclaw-patcher.sh --progressive
+~/.openclaw/patcher/openclaw-patcher.sh --no-progressive
 ```
 
 **Check status:**
@@ -129,11 +133,13 @@ disableBlockStreaming: false
 - Cross-platform (auto-detects GNU sed vs BSD sed)
 - `npm root -g` discovery (works with any node manager)
 - Automatic backup before patching
+- Mode control: `--enable` / `--disable` / `--status`
 
 **Example:**
 ```bash
 ~/.openclaw/patcher/apply-progressive.sh --status
-~/.openclaw/patcher/apply-progressive.sh
+~/.openclaw/patcher/apply-progressive.sh --enable
+~/.openclaw/patcher/apply-progressive.sh --disable
 ```
 
 ---
@@ -184,7 +190,7 @@ openclaw agent --channel whatsapp --to +6289669848875 \
   --message "buat 3 file demo, kasih progress tiap file selesai" --deliver
 ```
 
-**Full testing guide:** See [docs/HOW_TO_TEST.md](docs/HOW_TO_TEST.md)
+**Full testing guide:** See [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)
 
 ---
 
@@ -208,15 +214,15 @@ Both scripts work on:
 ```bash
 cd ~/.openclaw
 git pull
-python3 patcher/apply-multibubble-patch.py --status
-patcher/apply-progressive.sh --status
+patcher/openclaw-patcher.sh --status
 ```
 
 **Deploy:**
 ```bash
-python3 patcher/apply-multibubble-patch.py --strict --channels whatsapp,telegram
-patcher/apply-progressive.sh
-sudo systemctl restart openclaw
+patcher/openclaw-patcher.sh --progressive
+
+# or final-only mode
+patcher/openclaw-patcher.sh --no-progressive
 ```
 
 **Verify:**
@@ -266,4 +272,4 @@ Old/deprecated files moved to `archive/` for reference:
 **Created:** 2026-03-06  
 **Last updated:** 2026-03-07  
 **Status:** Production-ready, tested on local macOS  
-**VPS deployment:** Pending
+**VPS deployment:** Applied and verified

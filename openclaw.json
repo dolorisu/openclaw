@@ -1,7 +1,7 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.3.2",
-    "lastTouchedAt": "2026-03-06T21:10:20.314Z"
+    "lastTouchedAt": "2026-03-07T10:36:13.041Z"
   },
   "wizard": {
     "lastRunAt": "2026-03-06T18:14:34.933Z",
@@ -114,18 +114,18 @@
   "channels": {
     "whatsapp": {
       "enabled": true,
-      "selfChatMode": false,
       "dmPolicy": "allowlist",
+      "selfChatMode": false,
       "allowFrom": [
         "+6289669848875"
       ],
-      "groupPolicy": "open",
       "groupAllowFrom": [
         "*"
       ],
+      "groupPolicy": "open",
       "groups": {
         "*": {
-          requireMention: true
+          "requireMention": true
         }
       },
       "ackReaction": {
@@ -135,13 +135,6 @@
       },
       "debounceMs": 0,
       "mediaMaxMb": 50
-    },
-    "telegram": {
-      "enabled": true,
-      "dmPolicy": "allowlist",
-      "botToken": "8629213867:AAH7nF6842GrH3eM6yG3-DEFiu4iEmuD2eM",
-      "allowFrom": [849612359],
-      "streaming": "partial"
     }
   },
   "gateway": {
