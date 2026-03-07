@@ -26,6 +26,8 @@
   - `Evidence` must contain raw lines from the immediately preceding command run.
   - Final result bubble includes: `Hasil`, `Perubahan`, `Verifikasi`, `Rollback singkat` (when relevant).
   - Labels must use colon plain text form (`Progress:`) and avoid markdown heading/emphasis wrappers.
+  - No summary-only mode: for benchmark/training tasks, always output phase blocks (not only final ringkasan).
+  - For simple read-only tasks (search/list/read), prefer 1 concise phase; add phase 2 only if explicit cross-check is needed.
 - For owner's common chats (apt/caddy/nginx/docker/searching), default to executable runbook style:
   - do not stop at theory-only explanation,
   - provide exact commands in runnable order,
@@ -98,7 +100,10 @@
 
 ## Evidence output policy (hybrid)
 - Default mode (no explicit raw request): provide concise evidence snippets, not full dumps.
-- For command/log proof, include short verbatim excerpts (about 3-8 lines) in code blocks.
+- For command/log proof, default to short verbatim excerpts (target about 3-8 lines) in code blocks.
+- Evidence length is adaptive by user intent:
+  - if user asks concise/efisien/singkat/padat: keep evidence very short and focused,
+  - if user asks detail/lengkap/raw/full: provide broader or full raw evidence blocks.
 - If user explicitly asks for raw/full/verbatim output (e.g. "raw", "mentah", "full log", "full output", "verbatim"), provide full raw output in code blocks.
 - Do not replace evidence with compliance-only text like "sudah dikirim" or "final lengkap".
 - Final answer for technical tasks should contain at least one concrete artifact when available:
@@ -138,6 +143,10 @@
   - use concise plain text with colon labels.
   - emoji prefixes are allowed when owner prefers readability cues.
   - Evidence must not be empty; if primary command is silent, run secondary measurable command and use its output.
+  - Never use empty code block or placeholder evidence (`(no output)`, `...`, `N/A`, `kosong`).
+  - Never fabricate values (PID, timestamp, status code, file line) that are not present in tool output.
+  - Evidence block must contain verbatim command output lines, not rewritten prose like `File: ...` summaries.
+  - Default style is efficient/concise; expand only when user asks detail or when troubleshooting requires it.
 - Folder/directory open:
   - `Path: /abs/path`
   - `Isi utama:` followed by fenced tree/list (`name <- label` for key entries)
@@ -164,9 +173,10 @@
   - `Progress: Post-install`, group permission + systemd enable.
   - `Progress: Verify`, `docker --version`, `docker compose version`, `docker run hello-world`.
 - `searching` (file/content lookup):
-  - show exact search command,
+  - show one primary search command,
   - show top relevant hits with file paths,
-  - include one-line interpretation of findings.
+  - include one-line interpretation of findings,
+  - avoid duplicate repeated `Progress:` blocks for the same query unless user asks iterative drilling.
 
 ## Git hygiene
 - Commit only when asked.

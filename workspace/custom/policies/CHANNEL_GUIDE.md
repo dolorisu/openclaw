@@ -59,7 +59,10 @@ Use single bubble only when content must stay contiguous:
 ## Evidence formatting
 - If user asks for raw/full output: keep each raw block contiguous in a single bubble/code block.
 - Non-negotiable: fenced code block must open and close in the same bubble.
-- If user does not ask for raw output: send concise proof snippets (3-8 lines) and keep the rest summarized.
+- If user does not ask for raw output: send concise proof snippets (target 3-8 lines) and keep the rest summarized.
+- Evidence verbosity must follow user intent:
+  - concise/efisien/singkat -> short focused snippets,
+  - detail/lengkap/raw/full -> broader or full raw blocks.
 - For tree output, always use fenced code block.
 - Prefer pretty tree view (`tree` style with branches) over flat `./file` listing.
 - Default tree command for reports:
@@ -81,6 +84,12 @@ Use single bubble only when content must stay contiguous:
   - `Arti:` one short interpretation line.
 - Keep label format consistent with colon form, not heading form (use `Progress:` not `**Progress**`).
 - Keep labels in colon form; optional emoji prefix is allowed when readability mode is desired.
+- Forbidden in default owner ops replies:
+  - standalone separator lines (`---`),
+  - markdown table blocks,
+  - empty fenced code blocks,
+  - placeholder evidence tokens (`(no output)`, `N/A`, `...`),
+  - invented values not present in command output (for example fake PID/timestamp/status).
 
 ## Directory listing style
 - When user asks to "lihat isi folder/direktori", present a clean compact listing with short labels per entry.
@@ -138,6 +147,7 @@ Use single bubble only when content must stay contiguous:
 - If user requests explicit bubble count/section count (for example "2 bubble" or "3 section"), treat it as strict output contract.
 - For 2+ top-level sections, send each section through direct message tool as separate sends.
 - For slash-command reply shape, follow `custom/policies/COMMANDS.md` (compact, deterministic, low-noise).
+- Default owner daily-ops replies should be efficient first, then expandable on request.
 
 ## Channel/runtime constraints
 - If current channel context forbids direct multi-send in-thread, use short paragraphs separated by blank lines.
