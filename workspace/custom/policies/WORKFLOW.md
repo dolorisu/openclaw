@@ -21,6 +21,33 @@
 - Never fabricate progress, blockers, or results.
 - If a step finishes, send its `Progress:` bubble immediately before starting the next step.
 - Never place two `Progress:` lines in one outgoing bubble.
+- For long-running tasks where timely updates matter, emit progress immediately using direct channel send tool (message send), not only deferred final payload aggregation.
+- If runtime buffers final payloads, force checkpoint sends through message tool after each completed phase.
+- Anti-burst rule: for tasks with 3+ phases, avoid dumping all progress at the end; maintain natural spacing between progress bubbles (target >= 5s when work is non-trivial).
+- Every progress bubble must include concrete evidence (not just narration):
+  - tool/command used,
+  - target path/workspace,
+  - and 1-3 raw output lines or a short measurable result.
+- Evidence integrity: never invent command output. If you show output lines, they must be copied from actual tool results from the same run.
+- If exact output is not available, say so explicitly and continue with measurable checks instead of fabricating snippets.
+- If a phase has an issue/change of plan, mention the reason and the replacement action in the same progress bubble.
+- Never merge `Progress: Verify` and final report in one bubble.
+
+### Phase contract (engineering tasks)
+- For multi-phase engineering work (setup/build/integrate/deploy/verify), each phase must follow:
+  1. execute phase commands first,
+  2. send one `Progress:` bubble for that phase,
+  3. include `Command:` and `Evidence:` fields,
+  4. include `Path:` and key tech/runtime context (for example `node 24`, `npm`, `express`).
+- Do not announce future phases in the current phase bubble.
+- If a phase is incomplete, mark it explicitly and do not claim completion.
+- Progress evidence must be copied from the immediate previous tool result in the same run.
+- Allowed edits to evidence are limited to:
+  - truncating extra lines,
+  - masking secrets,
+  - adding `...` marker.
+- Never change filenames, ports, process IDs, status codes, or command outputs from tool results.
+- If evidence in draft text conflicts with tool output, correct the text to match tool output before sending.
 
 ## Output location policy
 - Generated/demo files must stay under `.openclaw`:
@@ -33,6 +60,29 @@
 - No fake success claims.
 - Show errors honestly, then retry or report blocker.
 - Verify service/config changes before saying done.
+
+## Evidence output policy (hybrid)
+- Default mode (no explicit raw request): provide concise evidence snippets, not full dumps.
+- For command/log proof, include short verbatim excerpts (about 3-8 lines) in code blocks.
+- If user explicitly asks for raw/full/verbatim output (e.g. "raw", "mentah", "full log", "full output", "verbatim"), provide full raw output in code blocks.
+- Do not replace evidence with compliance-only text like "sudah dikirim" or "final lengkap".
+- Final answer for technical tasks should contain at least one concrete artifact when available:
+  - command output excerpt,
+  - log excerpt,
+  - code/pseudo-code snippet,
+  - or exact file/path reference.
+- For deploy/live claims, final report must include command evidence before declaring success:
+  - `ss`/`netstat` listener check,
+  - `ps` process check,
+  - `curl` endpoint checks (health + app root when relevant).
+- If any required evidence is missing, state `status: partial verification` and do not claim fully successful deployment.
+- For full-stack/live tasks, final report minimum sections:
+  - section A: project tree,
+  - section B: runtime/process proof (`ss` + `ps`),
+  - section C: endpoint proof (`curl` raw excerpts),
+  - section D: start/stop runbook.
+- Before final success claim, perform a quick consistency check:
+  - evidence values in text must match tool outputs (path, file names, port, PID, endpoint status).
 
 ## Git hygiene
 - Commit only when asked.
