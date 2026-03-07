@@ -72,6 +72,8 @@ When delegating to another AI agent, share these constraints explicitly:
 - Never claim success without concrete evidence from command output.
 - Run regression gate after changes and include pass/fail summary in handoff message.
 
+Copy-paste template is available at `HANDOFF_TEMPLATE.md`.
+
 ## Collaboration model
 - Private working repo: `self` (`dolorisu/doloris`)
 - Upstream review repo: `origin` (`rifuki/doloris-openclaw`)
