@@ -37,6 +37,7 @@ Cross-channel delivery policy (WhatsApp, Telegram, Discord, and others).
   - `Path: <absolute path>`
   - `Command: <actual command>`
   - `Evidence:` code block with 1-3 raw lines
+- If multiple phase blocks are sent in one reply, each phase block must repeat its own `Path` line (no shared `Path` header).
 - `Evidence:` lines must be verbatim from the latest tool output (except optional truncation with `...`).
 - WhatsApp default text style: plain text labels with colon (`Progress:`, `Path:`, `Command:`, `Evidence:`, `Hasil:`).
 - Avoid markdown emphasis markers (`**bold**`, `__underline__`) unless user explicitly asks markdown styling.
@@ -68,6 +69,8 @@ Use single bubble only when content must stay contiguous:
 - Evidence verbosity must follow user intent:
   - concise/efisien/singkat -> short focused snippets,
   - detail/lengkap/raw/full -> broader or full raw blocks.
+- Concise mode hard cap: each `Evidence` fenced block should be about 3-8 lines.
+- For long outputs in concise mode, include only decisive raw lines (status/version/port/path/result), not full install logs.
 - For tree output, always use fenced code block.
 - Prefer pretty tree view (`tree` style with branches) over flat `./file` listing.
 - Default tree command for reports:

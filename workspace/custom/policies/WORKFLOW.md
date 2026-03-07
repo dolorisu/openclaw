@@ -23,6 +23,7 @@
 - Daily ops response contract (WhatsApp-oriented):
   - Each phase bubble uses exactly: `Progress`, `Path`, `Command`, `Evidence`.
   - `Path` is mandatory in every phase; if unknown use root (`/`) or the closest concrete file/dir.
+  - Repeat `Path` on every phase block even when path is unchanged; do not share one `Path` line across multiple phases.
   - Keep one command context per bubble (no mixed apt+docker in same bubble unless same phase and tightly coupled).
   - `Evidence` must contain raw lines from the immediately preceding command run.
   - `Evidence` should be shown as fenced raw snippet when command output is available.
@@ -108,6 +109,8 @@
 - Evidence length is adaptive by user intent:
   - if user asks concise/efisien/singkat/padat: keep evidence very short and focused,
   - if user asks detail/lengkap/raw/full: provide broader or full raw evidence blocks.
+  - In concise mode, hard-cap each `Evidence` block to about 3-8 raw lines.
+  - For long command output in concise mode, keep only key lines (version/status/success-error/path-port) and omit the rest.
 - If user explicitly asks for raw/full/verbatim output (e.g. "raw", "mentah", "full log", "full output", "verbatim"), provide full raw output in code blocks.
 - Do not replace evidence with compliance-only text like "sudah dikirim" or "final lengkap".
 - Final answer for technical tasks should contain at least one concrete artifact when available:
