@@ -153,14 +153,14 @@ for file in "${FILES[@]}"; do
     
     if [[ ! -f "$file" ]]; then
         echo "  ⚠️  $basename: not found"
-        ((error_count++))
+        error_count=$((error_count + 1))
         continue
     fi
     
     # Check current status
     if grep -q "disableBlockStreaming: false," "$file"; then
         echo "  ⏭️  $basename: already patched"
-        ((skipped_count++))
+        skipped_count=$((skipped_count + 1))
         continue
     fi
     
@@ -175,16 +175,16 @@ for file in "${FILES[@]}"; do
             # Verify patch applied
             if grep -q "disableBlockStreaming: false," "$file"; then
                 echo "  ✅ $basename: patched (backup: $(basename "$backup"))"
-                ((patched_count++))
+                patched_count=$((patched_count + 1))
             else
                 echo "  ❌ $basename: patch failed (no change detected)"
                 cp "$backup" "$file"
-                ((error_count++))
+                error_count=$((error_count + 1))
             fi
         else
             echo "  ❌ $basename: sed failed"
             cp "$backup" "$file"
-            ((error_count++))
+            error_count=$((error_count + 1))
         fi
     else
         # BSD sed (macOS)
@@ -192,16 +192,16 @@ for file in "${FILES[@]}"; do
             # Verify patch applied
             if grep -q "disableBlockStreaming: false," "$file"; then
                 echo "  ✅ $basename: patched (backup: $(basename "$backup"))"
-                ((patched_count++))
+                patched_count=$((patched_count + 1))
             else
                 echo "  ❌ $basename: patch failed (no change detected)"
                 cp "$backup" "$file"
-                ((error_count++))
+                error_count=$((error_count + 1))
             fi
         else
             echo "  ❌ $basename: sed failed"
             cp "$backup" "$file"
-            ((error_count++))
+            error_count=$((error_count + 1))
         fi
     fi
 done
