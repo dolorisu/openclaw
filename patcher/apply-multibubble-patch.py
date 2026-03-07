@@ -26,8 +26,9 @@ from typing import Iterable
 DELIVER_MARKER_TEMPLATE = '({channel_checks}) && typeof text === "string" && text.includes("\\n\\n")'
 WEB_PATCH_MARKER_A = 'const rawText = replyResult.text || "";'
 WEB_PATCH_MARKER_B_OLD = 'const paragraphParts = rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);'
-WEB_PATCH_MARKER_B = 'const paragraphParts = rawText.includes("```") ? [rawText] : rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);'
-WEB_PATCH_MARKER_C = 'const textChunks = rawText.includes("```") ? [markdownToWhatsApp(convertMarkdownTables(rawText, tableMode))] : paragraphParts.flatMap((part) => chunkMarkdownTextWithMode(markdownToWhatsApp(convertMarkdownTables(part, tableMode)), textLimit, chunkMode));'
+WEB_PATCH_MARKER_B = 'const keepAtomicProgress = /^\\s*Progress:\\s+/m.test(rawText) && /^\\s*Path:\\s+/m.test(rawText) && /^\\s*Command:\\s+/m.test(rawText) && /^\\s*Evidence:\\s*/m.test(rawText);'
+WEB_PATCH_MARKER_C = 'const paragraphParts = rawText.includes("```") || keepAtomicProgress ? [rawText] : rawText.split(/\\n\\n+/).map((part) => part.trim()).filter((part) => part && !/^[-*_]{3,}$/.test(part));'
+WEB_PATCH_MARKER_D = 'const textChunks = rawText.includes("```") || keepAtomicProgress ? [markdownToWhatsApp(convertMarkdownTables(rawText, tableMode))] : paragraphParts.flatMap((part) => chunkMarkdownTextWithMode(markdownToWhatsApp(convertMarkdownTables(part, tableMode)), textLimit, chunkMode));'
 TELEGRAM_PATCH_MARKER_OLD = 'const markdownChunks = markdown.includes("\\n\\n") ? markdown.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean) : params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
 TELEGRAM_PATCH_MARKER = 'const markdownChunks = markdown.includes("```") ? [markdown] : markdown.includes("\\n\\n") ? markdown.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean) : params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
 TELEGRAM_PREVIEW_MARKER = 'const shouldSendTelegramPreviewUpdate = (payload, info) => {'
@@ -340,16 +341,32 @@ def build_deliver_patched(data: str, channels: list[str], force: bool = False) -
 def build_web_patched(text: str) -> tuple[str | None, str]:
     if "async function deliverWebReply(" not in text:
         return None, "no deliverWebReply"
-    if WEB_PATCH_MARKER_A in text and WEB_PATCH_MARKER_B in text and WEB_PATCH_MARKER_C in text:
+    if WEB_PATCH_MARKER_A in text and WEB_PATCH_MARKER_B in text and WEB_PATCH_MARKER_C in text and WEB_PATCH_MARKER_D in text:
         return None, "already patched"
 
     # Upgrade legacy web patch (paragraph split without fenced-code protection)
     legacy_line = 'const textChunks = paragraphParts.flatMap((part) => chunkMarkdownTextWithMode(markdownToWhatsApp(convertMarkdownTables(part, tableMode)), textLimit, chunkMode));'
     if WEB_PATCH_MARKER_B_OLD in text and WEB_PATCH_MARKER_B not in text:
         upgraded = text.replace(WEB_PATCH_MARKER_B_OLD, WEB_PATCH_MARKER_B, 1)
-        upgraded = upgraded.replace(legacy_line, WEB_PATCH_MARKER_C, 1)
+        upgraded = upgraded.replace(legacy_line, WEB_PATCH_MARKER_D, 1)
+        if WEB_PATCH_MARKER_C not in upgraded:
+            upgraded = upgraded.replace(WEB_PATCH_MARKER_B + '\n', WEB_PATCH_MARKER_B + '\n' + WEB_PATCH_MARKER_C + '\n', 1)
         if upgraded != text:
             return upgraded, "upgraded fenced-code safe split"
+
+    if WEB_PATCH_MARKER_B in text and WEB_PATCH_MARKER_C not in text:
+        upgraded = text.replace(WEB_PATCH_MARKER_B + '\n', WEB_PATCH_MARKER_B + '\n' + WEB_PATCH_MARKER_C + '\n', 1)
+        if upgraded != text:
+            return upgraded, "upgraded progress-atomic paragraph filter"
+
+    if WEB_PATCH_MARKER_C in text and WEB_PATCH_MARKER_D not in text:
+        upgraded = text.replace(
+            'const textChunks = rawText.includes("```") ? [markdownToWhatsApp(convertMarkdownTables(rawText, tableMode))] : paragraphParts.flatMap((part) => chunkMarkdownTextWithMode(markdownToWhatsApp(convertMarkdownTables(part, tableMode)), textLimit, chunkMode));',
+            WEB_PATCH_MARKER_D,
+            1,
+        )
+        if upgraded != text:
+            return upgraded, "upgraded progress-atomic text chunking"
 
     lines = text.splitlines(keepends=True)
 
@@ -367,14 +384,15 @@ def build_web_patched(text: str) -> tuple[str | None, str]:
             target = i
             break
     if target is None:
-        return None, "textChunks line not found"
+        return None, "no web chunk resolver"
 
     indent = lines[target][: len(lines[target]) - len(lines[target].lstrip())]
     replacement = [
         indent + 'const rawText = replyResult.text || "";\n',
-        indent + 'const paragraphParts = rawText.includes("```") ? [rawText] : rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);\n',
+        indent + 'const keepAtomicProgress = /^\\s*Progress:\\s+/m.test(rawText) && /^\\s*Path:\\s+/m.test(rawText) && /^\\s*Command:\\s+/m.test(rawText) && /^\\s*Evidence:\\s*/m.test(rawText);\n',
+        indent + 'const paragraphParts = rawText.includes("```") || keepAtomicProgress ? [rawText] : rawText.split(/\\n\\n+/).map((part) => part.trim()).filter((part) => part && !/^[-*_]{3,}$/.test(part));\n',
         indent
-        + 'const textChunks = rawText.includes("```") ? [markdownToWhatsApp(convertMarkdownTables(rawText, tableMode))] : paragraphParts.flatMap((part) => chunkMarkdownTextWithMode(markdownToWhatsApp(convertMarkdownTables(part, tableMode)), textLimit, chunkMode));\n',
+        + 'const textChunks = rawText.includes("```") || keepAtomicProgress ? [markdownToWhatsApp(convertMarkdownTables(rawText, tableMode))] : paragraphParts.flatMap((part) => chunkMarkdownTextWithMode(markdownToWhatsApp(convertMarkdownTables(part, tableMode)), textLimit, chunkMode));\n',
     ]
 
     patched_lines = lines[:target] + replacement + lines[target + 1 :]
@@ -437,7 +455,7 @@ def status_web(path: Path) -> tuple[str, str]:
     data = path.read_text(encoding="utf-8", errors="ignore")
     if "async function deliverWebReply(" not in data:
         return "skip", "no deliverWebReply"
-    if WEB_PATCH_MARKER_A in data and WEB_PATCH_MARKER_B in data and WEB_PATCH_MARKER_C in data:
+    if WEB_PATCH_MARKER_A in data and WEB_PATCH_MARKER_B in data and WEB_PATCH_MARKER_C in data and WEB_PATCH_MARKER_D in data:
         return "patched", "markers present"
     if WEB_PATCH_MARKER_B_OLD in data:
         return "unpatched", "legacy split without fenced-code guard"
@@ -512,7 +530,7 @@ def patch_one(path: Path, kind: str, dry_run: bool, strict: bool, node_bin: str 
         patched_data, note = build_telegram_bot_patched(data)
 
     if patched_data is None:
-        if note.startswith("already patched") or note == "no deliverWebReply" or note == "no telegram chunk resolver" or note == "no telegram patch targets":
+        if note.startswith("already patched") or note == "no deliverWebReply" or note == "no web chunk resolver" or note == "no telegram chunk resolver" or note == "no telegram patch targets":
             return "skipped", note, None
         return "failed", note, None
 
