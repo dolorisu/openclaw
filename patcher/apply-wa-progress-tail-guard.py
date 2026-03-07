@@ -165,12 +165,12 @@ NEW_ATOMIC_GUARD = """\tconst fenceCount = (normalized.match(/```/g) || []).leng
 \t};"""
 NORMALIZED_SNIPPET = """\t\t\t\tconst normalizedPayload = isProgressUpdate ? {
 \t\t\t\t\t...payload,
-\t\t\t\t\ttext: normalizeProgressTextForWhatsApp(payload.text)
+\t\t\t\t\ttext: sanitizeProgressUpdateText(normalizeProgressTextForWhatsApp(payload.text))
 \t\t\t\t} : payload;
 \t\t\t\tawait deliverWebReply({"""
 NORMALIZED_PATCHED = """\t\t\t\tconst normalizedPayload = isProgressUpdate ? {
 \t\t\t\t\t...payload,
-\t\t\t\t\ttext: normalizeProgressTextForWhatsApp(payload.text)
+\t\t\t\t\ttext: sanitizeProgressUpdateText(normalizeProgressTextForWhatsApp(payload.text))
 \t\t\t\t} : payload;
 \t\t\t\tif (isProgressUpdate && typeof normalizedPayload.text === \"string\") {
 \t\t\t\t\tconst mergedText = joinProgressFragments(pendingProgressTail, normalizedPayload.text);
@@ -186,7 +186,7 @@ NORMALIZED_PATCHED = """\t\t\t\tconst normalizedPayload = isProgressUpdate ? {
 NORMALIZED_PATCHED_WITH_PREVIEW_GUARD = """\t\t\t\tif (isProgressUpdate && !shouldSendProgressPreviewText(payload.text) && !payload.mediaUrl && !payload.mediaUrls?.length) return;
 \t\t\t\tconst normalizedPayload = isProgressUpdate ? {
 \t\t\t\t\t...payload,
-\t\t\t\t\ttext: normalizeProgressTextForWhatsApp(payload.text)
+\t\t\t\t\ttext: sanitizeProgressUpdateText(normalizeProgressTextForWhatsApp(payload.text))
 \t\t\t\t} : payload;
 \t\t\t\tif (isProgressUpdate && typeof normalizedPayload.text === \"string\") {
 \t\t\t\t\tconst mergedText = joinProgressFragments(pendingProgressTail, normalizedPayload.text);
@@ -233,6 +233,14 @@ function joinProgressFragments(prefix, suffix) {
 \tif (!suffix) return prefix;
 \tconst needsSpace = !/[\\s([{"'`-]$/.test(prefix) && !/^[\\s,.;:!?)}\\]\"'`-]/.test(suffix);
 \treturn needsSpace ? `${prefix} ${suffix}` : `${prefix}${suffix}`;
+}
+function sanitizeProgressUpdateText(text) {
+\tif (typeof text !== "string") return text;
+\treturn text
+\t\t.replace(/```+/g, "")
+\t\t.replace(/^---+\\s*$/gm, "")
+\t\t.replace(/\\n{3,}/g, "\\n\\n")
+\t\t.trim();
 }
 function splitTrailingProgressFragment(text) {
 \tif (!text) return {
@@ -294,6 +302,7 @@ function shouldSendProgressPreviewText(text) {
 \tconst normalized = text.replace(/\\r\\n?/g, "\\n").trim();
 \tif (!normalized) return false;
 \tif (/```|~~~/.test(normalized)) return false;
+	if (/^Progress:\\s+/m.test(normalized) && !/^Command:\\s+/m.test(normalized) && normalized.length < 220) return false;
 \tif (normalized.length >= 260) return true;
 \tif (/\\n{2,}/.test(normalized)) return true;
 \tif (/^[\\s>*-]*\\d+[.)]\\s+/m.test(normalized) || /^[\\s>*-]*[-*+]\\s+/m.test(normalized)) return true;
@@ -481,6 +490,7 @@ def patch_content(text: str) -> tuple[str | None, str]:
 \tconst normalized = text.replace(/\\r\\n?/g, \"\\n\").trim();
 \tif (!normalized) return false;
 \tif (/```|~~~/.test(normalized)) return false;
+	if (/^Progress:\\s+/m.test(normalized) && !/^Command:\\s+/m.test(normalized) && normalized.length < 220) return false;
 \tif (normalized.length >= 260) return true;
 \tif (/\\n{2,}/.test(normalized)) return true;
 \tif (/^[\\s>*-]*\\d+[.)]\\s+/m.test(normalized) || /^[\\s>*-]*[-*+]\\s+/m.test(normalized)) return true;
@@ -504,6 +514,7 @@ def patch_content(text: str) -> tuple[str | None, str]:
 	const normalized = text.replace(/\r\n?/g, "\n").trim();
 	if (!normalized) return false;
 	if (/```|~~~/.test(normalized)) return false;
+	if (/^Progress:\s+/m.test(normalized) && !/^Command:\s+/m.test(normalized) && normalized.length < 220) return false;
 	if (normalized.length >= 260) return true;
 	if (/\n{2,}/.test(normalized)) return true;
 	if (/^[\s>*-]*\d+[.)]\s+/m.test(normalized) || /^[\s>*-]*[-*+]\s+/m.test(normalized)) return true;
