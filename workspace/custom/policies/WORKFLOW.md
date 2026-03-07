@@ -7,6 +7,10 @@
 4. Verify output.
 5. Send finish status.
 
+## Slash-command short-circuit
+- For slash-command turns, use deterministic command handling from `custom/policies/COMMANDS.md`.
+- Keep command turns concise; skip narrative workflow unless command explicitly requires verification output.
+
 ## Interactive progress protocol
 - Use incremental updates for multi-step tasks.
 - Update format (plain text, no markdown headings/tables):

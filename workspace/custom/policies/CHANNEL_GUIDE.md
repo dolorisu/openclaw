@@ -73,6 +73,7 @@ Use single bubble only when content must stay contiguous:
 - Target each final bubble to stay compact and scannable (roughly <= 12 lines unless raw output explicitly requested).
 - If user requests explicit bubble count/section count (for example "2 bubble" or "3 section"), treat it as strict output contract.
 - For 2+ top-level sections, send each section through direct message tool as separate sends.
+- For slash-command reply shape, follow `custom/policies/COMMANDS.md` (compact, deterministic, low-noise).
 
 ## Channel/runtime constraints
 - If current channel context forbids direct multi-send in-thread, use short paragraphs separated by blank lines.
