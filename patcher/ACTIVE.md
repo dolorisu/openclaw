@@ -10,6 +10,15 @@
 ~/.openclaw/patcher/openclaw-patcher.sh
 ```
 
+Mode variants:
+```bash
+# Progressive on (default)
+~/.openclaw/patcher/openclaw-patcher.sh --progressive
+
+# Progressive off (final-only replies)
+~/.openclaw/patcher/openclaw-patcher.sh --no-progressive
+```
+
 **Status all patchers:**
 ```bash
 ~/.openclaw/patcher/openclaw-patcher.sh --status
@@ -35,7 +44,14 @@ python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --channels whats
 
 ### 3. Apply Progressive Updates Patch
 ```bash
-~/.openclaw/patcher/apply-progressive.sh
+# Prefer orchestrator mode toggle
+~/.openclaw/patcher/openclaw-patcher.sh --progressive
+
+# or disable progressive explicitly
+~/.openclaw/patcher/openclaw-patcher.sh --no-progressive
+
+# low-level script (manual)
+~/.openclaw/patcher/apply-progressive.sh --enable
 ```
 
 ### 4. Restart Gateway
@@ -92,6 +108,8 @@ openclaw agent --channel whatsapp --to +6289669848875 \
 ```bash
 npm update -g openclaw
 ~/.openclaw/patcher/openclaw-patcher.sh --force-multibubble
+# keep progressive enabled explicitly
+~/.openclaw/patcher/openclaw-patcher.sh --progressive
 ```
 
 ### Rollback Patches

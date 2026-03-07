@@ -52,11 +52,12 @@ ls -lh patcher/
 ```
 
 **Expected files:**
+- `openclaw-patcher.sh`
 - `apply-multibubble-patch.py`
 - `apply-progressive.sh`
-- `HOW_TO_TEST.md`
-- `TESTING.md`
-- `TEST_RESULTS.md`
+- `apply-wa-progress-tail-guard.py`
+- `docs/TESTING_GUIDE.md`
+- `docs/LOCAL_TEST_RESULTS.md`
 - `PROGRESSIVE_UPDATES.md`
 - `README.md`
 - `ACTIVE.md`
@@ -64,11 +65,13 @@ ls -lh patcher/
 ### 3. Check Current Patch Status
 
 ```bash
-# Multi-bubble status
-python3 ~/.openclaw/patcher/apply-multibubble-patch.py --status
+# Recommended: one status command for full stack
+~/.openclaw/patcher/openclaw-patcher.sh --status
 
-# Progressive updates status
+# Optional low-level checks
+python3 ~/.openclaw/patcher/apply-multibubble-patch.py --status
 ~/.openclaw/patcher/apply-progressive.sh --status
+python3 ~/.openclaw/patcher/apply-wa-progress-tail-guard.py --status
 ```
 
 **Possible outcomes:**
@@ -79,10 +82,10 @@ python3 ~/.openclaw/patcher/apply-multibubble-patch.py --status
 ### 4. Apply Multi-Bubble Patch
 
 ```bash
-# For both WhatsApp and Telegram
-python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --channels whatsapp,telegram
+# Recommended: sequence-safe orchestrator
+~/.openclaw/patcher/openclaw-patcher.sh --progressive
 
-# Verify
+# Optional: low-level verify
 python3 ~/.openclaw/patcher/apply-multibubble-patch.py --status
 ```
 
@@ -98,7 +101,11 @@ Summary:
 ### 5. Apply Progressive Updates Patch
 
 ```bash
-~/.openclaw/patcher/apply-progressive.sh
+# Orchestrator mode toggle (recommended)
+~/.openclaw/patcher/openclaw-patcher.sh --progressive
+
+# Disable progressive when needed
+~/.openclaw/patcher/openclaw-patcher.sh --no-progressive
 
 # Verify
 ~/.openclaw/patcher/apply-progressive.sh --status
@@ -355,6 +362,6 @@ After successful deployment, update this file with:
 
 **Prepared by:** AI Assistant (Claude)  
 **Preparation date:** 2026-03-07  
-**Local testing:** ✅ Completed (see TEST_RESULTS.md)  
-**VPS deployment:** ⏳ Pending  
+**Local testing:** ✅ Completed (see LOCAL_TEST_RESULTS.md)  
+**VPS deployment:** ✅ Applied and verified  
 **Deployment contact:** rifuki
