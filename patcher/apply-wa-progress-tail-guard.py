@@ -23,6 +23,7 @@ Discovery order:
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
 import subprocess
 from datetime import datetime
@@ -180,6 +181,53 @@ function shouldSendProgressPreviewText(text) {
 """
 
 
+def patch_normalized_payload_block_fallback(text: str) -> tuple[str | None, str]:
+    start_token = 'const isProgressUpdate = info.kind !== "final";'
+    reply_token = "replyResult: normalizedPayload,"
+    msg_token = "msg: params.msg,"
+
+    start = text.find(start_token)
+    if start < 0:
+        return None, "isProgressUpdate marker missing"
+    reply_idx = text.find(reply_token, start)
+    if reply_idx < 0:
+        return None, "replyResult marker missing"
+    msg_idx = text.find(msg_token, reply_idx)
+    if msg_idx < 0:
+        return None, "msg marker missing"
+
+    new_block = """const isProgressUpdate = info.kind !== \"final\";
+\t\t\t\tif (isProgressUpdate && !shouldSendProgressPreviewText(payload.text) && !payload.mediaUrl && !payload.mediaUrls?.length) return;
+\t\t\t\tconst normalizedPayload = isProgressUpdate ? {
+\t\t\t\t\t...payload,
+\t\t\t\t\ttext: normalizeProgressTextForWhatsApp(payload.text)
+\t\t\t\t} : payload;
+\t\t\t\tif (isProgressUpdate && typeof normalizedPayload.text === \"string\") {
+\t\t\t\t\tconst mergedText = joinProgressFragments(pendingProgressTail, normalizedPayload.text);
+\t\t\t\t\tconst split = splitTrailingProgressFragment(mergedText);
+\t\t\t\t\tpendingProgressTail = split.tail;
+\t\t\t\t\tnormalizedPayload.text = split.head;
+\t\t\t\t\tif (!normalizedPayload.text.trim() && !normalizedPayload.mediaUrl && !normalizedPayload.mediaUrls?.length) return;
+\t\t\t\t} else if (!isProgressUpdate && typeof normalizedPayload.text === \"string\" && pendingProgressTail) {
+\t\t\t\t\tnormalizedPayload.text = joinProgressFragments(pendingProgressTail, normalizedPayload.text);
+\t\t\t\t\tpendingProgressTail = \"\";
+\t\t\t\t}
+\t\t\t\tawait deliverWebReply({
+\t\t\t\t\treplyResult: normalizedPayload,
+\t\t\t\t\t"""
+
+    patched = text[:start] + new_block + text[msg_idx:]
+    return patched, "patched via fallback"
+
+
+def patch_no_final_fallback(text: str) -> tuple[str | None, str]:
+    pattern = r'\t\tlogVerbose\("Auto-reply updates delivered without final payload"\);\s*\t\}'
+    patched, count = re.subn(pattern, NO_FINAL_PATCHED, text, count=1)
+    if count:
+        return patched, "patched no-final via regex"
+    return None, "queuedFinal tail snippet missing"
+
+
 def run(cmd: list[str]) -> str:
     try:
         return subprocess.check_output(cmd, stderr=subprocess.DEVNULL, text=True).strip()
@@ -322,12 +370,19 @@ def patch_content(text: str) -> tuple[str | None, str]:
         elif NORMALIZED_SNIPPET in patched:
             patched = patched.replace(NORMALIZED_SNIPPET, NORMALIZED_PATCHED_WITH_PREVIEW_GUARD, 1)
         else:
-            return None, "normalized payload snippet missing"
+            fallback, _ = patch_normalized_payload_block_fallback(patched)
+            if fallback is None:
+                return None, "normalized payload snippet missing"
+            patched = fallback
 
     if NO_FINAL_PATCHED not in patched:
         if NO_FINAL_SNIPPET not in patched:
-            return None, "queuedFinal tail snippet missing"
-        patched = patched.replace(NO_FINAL_SNIPPET, NO_FINAL_PATCHED, 1)
+            fallback, _ = patch_no_final_fallback(patched)
+            if fallback is None:
+                return None, "queuedFinal tail snippet missing"
+            patched = fallback
+        else:
+            patched = patched.replace(NO_FINAL_SNIPPET, NO_FINAL_PATCHED, 1)
 
     if patched == text:
         return None, "already patched"
@@ -340,6 +395,14 @@ def patch_one(path: Path, dry_run: bool, strict: bool, node_bin: str | None) -> 
     if patched_data is None:
         if note == "already patched":
             return "skipped", note, None
+        if note in {
+            "normalized payload snippet missing",
+            "queuedFinal tail snippet missing",
+            "didSendReply marker missing",
+            "deliverWebReply anchor missing",
+            "deliverWebReply anchor missing for preview helper",
+        }:
+            return "skipped", f"incompatible bundle ({note})", None
         return "failed", note, None
 
     if dry_run:
