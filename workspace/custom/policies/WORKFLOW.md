@@ -28,6 +28,7 @@
   - Labels must use colon plain text form (`Progress:`) and avoid markdown heading/emphasis wrappers.
   - No summary-only mode: for benchmark/training tasks, always output phase blocks (not only final ringkasan).
   - For simple read-only tasks (search/list/read), prefer 1 concise phase; add phase 2 only if explicit cross-check is needed.
+  - Concise mode still keeps labels (`Progress/Path/Command/Evidence/Hasil`); only shorten line count, not structure.
 - For owner's common chats (apt/caddy/nginx/docker/searching), default to executable runbook style:
   - do not stop at theory-only explanation,
   - provide exact commands in runnable order,
@@ -142,6 +143,7 @@
   - no emphasis wrappers for labels (`**Progress**`),
   - use concise plain text with colon labels.
   - emoji prefixes are allowed when owner prefers readability cues.
+  - for owner daily tasks, prefer emoji label set (`⏳`, `📁`, `🔧`, `📋`, `✅`) by default.
   - Evidence must not be empty; if primary command is silent, run secondary measurable command and use its output.
   - Never use empty code block or placeholder evidence (`(no output)`, `...`, `N/A`, `kosong`).
   - Never fabricate values (PID, timestamp, status code, file line) that are not present in tool output.
