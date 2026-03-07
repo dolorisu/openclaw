@@ -11,7 +11,8 @@ Owner command set for Doloris. Owner: Rifuki (`+6289669848875`).
 - In group context, `/open-group` and `/close-group` without args must target current group JID directly.
 - After config edits: re-read config and verify changes.
 - Recognize these literal commands in WA chat/group: `/open-group`, `/close-group`.
-- Never answer with "command/tool not available" for those two commands.
+- Recognize these literal commands in WA chat/group: `/reset`, `/open-group`, `/close-group`.
+- Never answer with "command/tool not available" for these commands.
 - If state already matches target value, respond `already active` and keep flow successful.
 - Unknown slash command: return one concise help bubble (no long policy summary, no speculative Q&A).
 
@@ -59,6 +60,19 @@ Steps:
 
 ## `/backup-self [message]`
 Backup current work to private repo (`self`).
+
+## `/reset`
+Reset conversational state for the current session.
+
+Execution:
+1. Treat `/reset` as high-priority command (no normal greeting response).
+2. Clear conversational context for current session.
+3. Reply in one concise bubble only.
+
+Response contract:
+- If reset succeeds: `✅ New session started.`
+- If already fresh/no active sub-agent: `✅ Session already fresh.`
+- Do not append extra greeting, planning text, or follow-up question.
 
 Execution:
 1. Check `git status -sb`.
