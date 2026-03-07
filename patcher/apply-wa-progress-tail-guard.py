@@ -69,6 +69,30 @@ NEW_SPLIT_CORE = """\tconst normalized = text.replace(/\\r\\n?/g, \"\\n\");
 \t\thead: normalized,
 \t\ttail: \"\"
 \t};"""
+NEWEST_SPLIT_CORE = """\tconst normalized = text.replace(/\\r\\n?/g, "\\n");
+\tconst trimmed = normalized.trimEnd();
+\tconst endsLikeSentence = /[.!?](?:[\"')\\]]+)?$/.test(trimmed);
+\tif (normalized.length < 80) return {
+\t\thead: normalized,
+\t\ttail: ""
+\t};
+\tlet cut = -1;
+\tfor (const match of normalized.matchAll(TRAILING_SENTENCE_BOUNDARY_RE)) cut = (match.index ?? 0) + match[0].length;
+\tif (cut <= 0 || cut >= normalized.length) return {
+\t\thead: !endsLikeSentence && !/\\n{2,}/.test(normalized) ? "" : normalized,
+\t\ttail: !endsLikeSentence && !/\\n{2,}/.test(normalized) ? normalized : ""
+\t};
+\tlet head = normalized.slice(0, cut).trimEnd();
+\tlet tail = normalized.slice(cut).trimStart();
+\tif (!tail || tail.length > 220 || /\\n{2,}/.test(tail) || /[.!?](?:[\"')\\]]+)?$/.test(tail.trimEnd())) return {
+\t\thead: normalized,
+\t\ttail: ""
+\t};
+\tconst headLastLine = head.split("\\n").pop()?.trim() ?? "";
+\tif (/^\\d+\\.$/.test(headLastLine)) {
+\t\thead = head.slice(0, head.length - headLastLine.length).trimEnd();
+\t\ttail = joinProgressFragments(headLastLine, tail);
+\t};"""
 NORMALIZED_SNIPPET = """\t\t\t\tconst normalizedPayload = isProgressUpdate ? {
 \t\t\t\t\t...payload,
 \t\t\t\t\ttext: normalizeProgressTextForWhatsApp(payload.text)
@@ -158,12 +182,17 @@ function splitTrailingProgressFragment(text) {
 \t\thead: !endsLikeSentence && !/\\n{2,}/.test(normalized) ? "" : normalized,
 \t\ttail: !endsLikeSentence && !/\\n{2,}/.test(normalized) ? normalized : ""
 \t};
-\tconst head = normalized.slice(0, cut).trimEnd();
-\tconst tail = normalized.slice(cut).trimStart();
+\tlet head = normalized.slice(0, cut).trimEnd();
+\tlet tail = normalized.slice(cut).trimStart();
 \tif (!tail || tail.length > 220 || /\\n{2,}/.test(tail) || /[.!?](?:[\"')\\]]+)?$/.test(tail.trimEnd())) return {
 \t\thead: normalized,
 \t\ttail: ""
 \t};
+\tconst headLastLine = head.split("\\n").pop()?.trim() ?? "";
+\tif (/^\\d+\\.$/.test(headLastLine)) {
+\t\thead = head.slice(0, head.length - headLastLine.length).trimEnd();
+\t\ttail = joinProgressFragments(headLastLine, tail);
+\t}
 \treturn {
 \t\thead,
 \t\ttail
@@ -340,6 +369,8 @@ def patch_content(text: str) -> tuple[str | None, str]:
 
     if OLD_SPLIT_CORE in patched:
         patched = patched.replace(OLD_SPLIT_CORE, NEW_SPLIT_CORE, 1)
+    if NEW_SPLIT_CORE in patched:
+        patched = patched.replace(NEW_SPLIT_CORE, NEWEST_SPLIT_CORE, 1)
 
     if TAIL_MARKER not in patched:
         marker = "\tlet didSendReply = false;"
