@@ -33,6 +33,45 @@ python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --channels whats
 openclaw gateway restart
 ```
 
+## Quality Gate (handoff-safe)
+Use this gate before handing tasks to another AI agent.
+
+```bash
+# Strict WhatsApp regression (real delivery)
+bash ~/.openclaw/patcher/verify/wa-quality-regression.sh --to +6289669848875 --timeout 300
+
+# Optional: add complex scenario
+bash ~/.openclaw/patcher/verify/wa-quality-regression.sh --to +6289669848875 --timeout 300 --complex
+```
+
+Pass criteria (strict mode default):
+- `/reset` returns concise reset acknowledgment.
+- Fenced-block test remains one contiguous fenced block.
+- Ops/search tests preserve labeled structure and evidence quality.
+- No default markdown table, no `---` separator-only line, no placeholder evidence.
+
+If needed for diagnosis only:
+```bash
+bash ~/.openclaw/patcher/verify/wa-quality-regression.sh --to +6289669848875 --no-strict-format
+```
+
+## Rating rubric (core quality)
+Use this practical rubric to rate current behavior for daily engineering use:
+
+- `9.5-10.0`: deterministic across repeated runs; ops/search format stable; evidence clean.
+- `9.0-9.4`: strong and usable; minor drift can still appear in edge prompts.
+- `8.0-8.9`: generally works but formatting/evidence drift is noticeable.
+- `<8.0`: not ready for production handoff.
+
+Current target for handoff readiness: `>= 9.5` on strict regression passes.
+
+## AI handoff notes
+When delegating to another AI agent, share these constraints explicitly:
+- For daily ops tasks, keep per-phase labels: `⏳ Progress`, `📁 Path`, `🔧 Command`, `📋 Evidence`, `✅ Hasil`.
+- Default mode is efficient; evidence concise (about 3-8 lines) unless user asks raw/full detail.
+- Never claim success without concrete evidence from command output.
+- Run regression gate after changes and include pass/fail summary in handoff message.
+
 ## Collaboration model
 - Private working repo: `self` (`dolorisu/doloris`)
 - Upstream review repo: `origin` (`rifuki/doloris-openclaw`)

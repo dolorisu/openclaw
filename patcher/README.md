@@ -12,7 +12,7 @@ Discovery order prioritizes `npm root -g` and then falls back to binary-path and
 
 - `openclaw-patcher.sh` (main gateway)
   - Primary `.sh` entrypoint for day-to-day use.
-  - Orchestrates sequence: multi-bubble -> progressive mode -> WA tail guard -> restart.
+  - Orchestrates sequence: multi-bubble -> progressive mode -> WA tail guard -> WA outbound dedupe -> WA reset prompt -> restart.
 
 - `apply-multibubble-patch.py`
   - Canonical multi-bubble patcher (WhatsApp + Telegram paths).
@@ -25,6 +25,13 @@ Discovery order prioritizes `npm root -g` and then falls back to binary-path and
   - Sends real test prompts to WhatsApp and Telegram.
   - Validates outbound message count from gateway logs.
   - Returns pass/fail for multi-bubble behavior.
+
+- `verify/wa-quality-regression.sh`
+  - Strict WhatsApp quality gate for daily engineering behavior.
+  - Runs `/reset`, smoke, fenced-block, ops, and search checks.
+  - Validates structure/evidence constraints (and still checks WA outbound delta).
+  - Supports `--complex` for an additional heavy scenario.
+  - Use `--no-strict-format` only for diagnostics.
 
 - `apply-wa-progress-tail-guard.py`
   - Prevents WhatsApp progress streaming from splitting short trailing sentence fragments into a separate bubble.
@@ -45,6 +52,10 @@ Discovery order prioritizes `npm root -g` and then falls back to binary-path and
 
 # real end-to-end verification (sends test messages)
 ~/.openclaw/patcher/verify-multibubble.sh --wa-to +6289669848875 --tg-to @rifuki
+
+# strict WA quality gate (recommended before handoff)
+bash ~/.openclaw/patcher/verify/wa-quality-regression.sh --to +6289669848875 --timeout 300
+bash ~/.openclaw/patcher/verify/wa-quality-regression.sh --to +6289669848875 --timeout 300 --complex
 
 # direct tail-guard only
 python3 ~/.openclaw/patcher/apply-wa-progress-tail-guard.py --status
