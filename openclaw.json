@@ -114,18 +114,19 @@
   "channels": {
     "whatsapp": {
       "enabled": true,
-      "dmPolicy": "open",
       "selfChatMode": false,
+      "dmPolicy": "allowlist",
       "allowFrom": [
-        "*",
         "+6289669848875"
       ],
+      "groupPolicy": "open",
       "groupAllowFrom": [
         "*"
       ],
-      "groupPolicy": "open",
       "groups": {
-        "*": {}
+        "*": {
+          requireMention: true
+        }
       },
       "ackReaction": {
         "emoji": "🌙",
@@ -133,24 +134,13 @@
         "group": "never"
       },
       "debounceMs": 0,
-      "accounts": {
-        "default": {
-          "enabled": true,
-          "dmPolicy": "pairing",
-          "groupPolicy": "allowlist",
-          "debounceMs": 0
-        }
-      },
       "mediaMaxMb": 50
     },
     "telegram": {
       "enabled": true,
-      "dmPolicy": "open",
+      "dmPolicy": "allowlist",
       "botToken": "8629213867:AAH7nF6842GrH3eM6yG3-DEFiu4iEmuD2eM",
-      "allowFrom": [
-        "*"
-      ],
-      "groupPolicy": "allowlist",
+      "allowFrom": [849612359],
       "streaming": "partial"
     }
   },
