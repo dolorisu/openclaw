@@ -6,10 +6,22 @@ Owner command set for Doloris. Owner: Rifuki (`+6289669848875`).
 - Commands are imperative: execute with tools, not text-only acknowledgement.
 - Verify sender is owner before running owner-only commands.
 - Normalize command input: trim, remove leading mention (`@Doloris`), then parse slash command.
+- Deterministic gate: if normalized input starts with `/`, run command parser first (before conversational reasoning).
+- Cold-start rule: first turn after `/reset` must still honor slash commands immediately.
+- In group context, `/open-group` and `/close-group` without args must target current group JID directly.
 - After config edits: re-read config and verify changes.
 - Recognize these literal commands in WA chat/group: `/open-group`, `/close-group`.
 - Never answer with "command/tool not available" for those two commands.
 - If state already matches target value, respond `already active` and keep flow successful.
+- Unknown slash command: return one concise help bubble (no long policy summary, no speculative Q&A).
+
+## Command response contract (anti-noise)
+- Keep command output concise and deterministic:
+  1) status line,
+  2) key target/path,
+  3) required next action (only if needed).
+- Do not send duplicate follow-up bubbles with the same meaning.
+- Do not append unrelated narrative after command success.
 
 ## Active config path (hardcoded)
 Use only this path on this deployment:
