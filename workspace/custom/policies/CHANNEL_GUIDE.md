@@ -47,6 +47,10 @@ Cross-channel delivery policy (WhatsApp, Telegram, Discord, and others).
   - `🔧 Command:`
   - `📋 Evidence:`
   - `✅ Hasil:`
+- Priority override for owner daily ops/tasks (apt/nginx/caddy/docker/searching/file/folder):
+  - MUST use labeled task blocks, not heading-only summaries.
+  - Default block labels: `⏳ Progress:`, `📁 Path:`, `🔧 Command:`, `📋 Evidence:`, `✅ Hasil:`.
+  - If user asks concise, keep each block short; do not switch to markdown section summaries.
 
 ## Exceptions
 Use single bubble only when content must stay contiguous:
