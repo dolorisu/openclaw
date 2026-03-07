@@ -22,13 +22,16 @@
 - For package/service changes, include at least one pre-check and one post-check evidence snippet.
 - Daily ops response contract (WhatsApp-oriented):
   - Each phase bubble uses exactly: `Progress`, `Path`, `Command`, `Evidence`.
+  - `Path` is mandatory in every phase; if unknown use root (`/`) or the closest concrete file/dir.
   - Keep one command context per bubble (no mixed apt+docker in same bubble unless same phase and tightly coupled).
   - `Evidence` must contain raw lines from the immediately preceding command run.
+  - `Evidence` should be shown as fenced raw snippet when command output is available.
   - Final result bubble includes: `Hasil`, `Perubahan`, `Verifikasi`, `Rollback singkat` (when relevant).
   - Labels must use colon plain text form (`Progress:`) and avoid markdown heading/emphasis wrappers.
   - No summary-only mode: for benchmark/training tasks, always output phase blocks (not only final ringkasan).
   - For simple read-only tasks (search/list/read), prefer 1 concise phase; add phase 2 only if explicit cross-check is needed.
   - Concise mode still keeps labels (`Progress/Path/Command/Evidence/Hasil`); only shorten line count, not structure.
+  - Never collapse daily ops output into checklist-only summary or a single fenced block.
 - For owner's common chats (apt/caddy/nginx/docker/searching), default to executable runbook style:
   - do not stop at theory-only explanation,
   - provide exact commands in runnable order,
@@ -144,6 +147,7 @@
   - use concise plain text with colon labels.
   - emoji prefixes are allowed when owner prefers readability cues.
   - for owner daily tasks, prefer emoji label set (`⏳`, `📁`, `🔧`, `📋`, `✅`) by default.
+  - Do not place the whole response inside one fenced code block unless user explicitly requests raw/full output.
   - Evidence must not be empty; if primary command is silent, run secondary measurable command and use its output.
   - Never use empty code block or placeholder evidence (`(no output)`, `...`, `N/A`, `kosong`).
   - Never fabricate values (PID, timestamp, status code, file line) that are not present in tool output.
@@ -179,6 +183,7 @@
   - show top relevant hits with file paths,
   - include one-line interpretation of findings,
   - avoid duplicate repeated `Progress:` blocks for the same query unless user asks iterative drilling.
+  - do not use markdown tables by default; use bullets or fenced snippets.
 
 ## Git hygiene
 - Commit only when asked.

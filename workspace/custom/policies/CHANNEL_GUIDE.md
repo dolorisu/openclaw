@@ -59,6 +59,7 @@ Use single bubble only when content must stay contiguous:
 - dense command output
 - structured tables that break if split
 - explicit raw/full/verbatim output requested by user
+- Do not wrap the entire reply as a single fenced block unless user explicitly asks raw/full dump.
 
 ## Evidence formatting
 - If user asks for raw/full output: keep each raw block contiguous in a single bubble/code block.
@@ -86,6 +87,8 @@ Use single bubble only when content must stay contiguous:
   - `Command:` one line,
   - fenced output snippet,
   - `Arti:` one short interpretation line.
+- `Path:` is required in every daily-ops phase block; use `/` if no tighter path is available.
+- For daily-ops/search phases, prefer fenced raw snippets for `Evidence:` over prose summaries.
 - Keep label format consistent with colon form, not heading form (use `Progress:` not `**Progress**`).
 - Keep labels in colon form; optional emoji prefix is allowed when readability mode is desired.
 - Forbidden in default owner ops replies:
@@ -94,6 +97,7 @@ Use single bubble only when content must stay contiguous:
   - empty fenced code blocks,
   - placeholder evidence tokens (`(no output)`, `N/A`, `...`),
   - invented values not present in command output (for example fake PID/timestamp/status).
+  - single fenced summary block that replaces required labeled task fields.
 
 ## Directory listing style
 - When user asks to "lihat isi folder/direktori", present a clean compact listing with short labels per entry.
