@@ -12,6 +12,27 @@
 - Do not stop at plan-only replies.
 - Do not ask permission-style follow-ups like "Mau saya jalankan sekarang?" unless action is destructive/irreversible or requires missing secret.
 
+## Daily ops baseline
+- For routine software-engineering ops (apt install/uninstall/update, Docker, Caddy/Nginx setup, service checks), use this loop:
+  1) inspect current state,
+  2) apply minimal change,
+  3) verify with command evidence,
+  4) report concise result + rollback hint when relevant.
+- Prefer idempotent commands and safe defaults first.
+- For package/service changes, include at least one pre-check and one post-check evidence snippet.
+- Daily ops response contract (WhatsApp-oriented):
+  - Each phase bubble uses exactly: `Progress`, `Path`, `Command`, `Evidence`.
+  - Keep one command context per bubble (no mixed apt+docker in same bubble unless same phase and tightly coupled).
+  - `Evidence` must contain raw lines from the immediately preceding command run.
+  - Final result bubble includes: `Hasil`, `Perubahan`, `Verifikasi`, `Rollback singkat` (when relevant).
+  - Labels must use colon plain text form (`Progress:`) and avoid markdown heading/emphasis wrappers.
+- For owner's common chats (apt/caddy/nginx/docker/searching), default to executable runbook style:
+  - do not stop at theory-only explanation,
+  - provide exact commands in runnable order,
+  - include quick verification command after each critical change.
+- If runtime OS is not the requested target (for example macOS vs Ubuntu), still provide target-specific runbook and mark local execution as `simulasi` or `tidak bisa dieksekusi di host ini`.
+- Avoid ending with permission questions like `Mau saya bantu?`; end with direct next action options.
+
 ## Slash-command short-circuit
 - For slash-command turns, use deterministic command handling from `custom/policies/COMMANDS.md`.
 - Keep command turns concise; skip narrative workflow unless command explicitly requires verification output.
@@ -107,6 +128,45 @@
 - For project tree in final report, show curated structure (important files/dirs) and exclude heavy vendor folders by default.
 - If full tree is required, provide it only when user explicitly asks raw/full tree.
 - Before sending each bubble, perform dedupe check against the previous bubble; if identical, skip resend.
+
+## Daily assistant reply templates
+- Use these defaults for common requests unless user asks another format.
+- WhatsApp formatting defaults:
+  - no markdown tables,
+  - no separator lines (`---`),
+  - no emphasis wrappers for labels (`**Progress**`),
+  - use concise plain text with colon labels.
+  - emoji prefixes are allowed when owner prefers readability cues.
+  - Evidence must not be empty; if primary command is silent, run secondary measurable command and use its output.
+- Folder/directory open:
+  - `Path: /abs/path`
+  - `Isi utama:` followed by fenced tree/list (`name <- label` for key entries)
+  - one short offer for drill-down.
+- File open/read:
+  - `Path + type/size`, then `Fungsi`, then `Poin penting`, then `Cuplikan` fenced block.
+  - Include `Catatan risiko` only when there is real risk (secrets, destructive config, exposed tokens).
+- Image send/show:
+  - send attachment first,
+  - then one short caption,
+  - if failed, report exact blocker and nearest fallback in one compact bubble.
+
+## High-frequency task templates
+- `apt install/uninstall/update`:
+  - `Progress: Pre-check`, run apt/dpkg status checks.
+  - `Progress: Apply`, run apt commands with non-interactive flags when safe.
+  - `Progress: Verify`, show package version/service status and one rollback command.
+- `setup nginx/caddy`:
+  - `Progress: Install`, package install + service enable.
+  - `Progress: Configure`, write minimal config and validate (`nginx -t` or `caddy validate`).
+  - `Progress: Verify`, listener + curl endpoint checks.
+- `setup docker`:
+  - `Progress: Install`, Docker repo + engine/plugin install.
+  - `Progress: Post-install`, group permission + systemd enable.
+  - `Progress: Verify`, `docker --version`, `docker compose version`, `docker run hello-world`.
+- `searching` (file/content lookup):
+  - show exact search command,
+  - show top relevant hits with file paths,
+  - include one-line interpretation of findings.
 
 ## Git hygiene
 - Commit only when asked.

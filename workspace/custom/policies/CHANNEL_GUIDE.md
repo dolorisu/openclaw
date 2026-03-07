@@ -38,6 +38,15 @@ Cross-channel delivery policy (WhatsApp, Telegram, Discord, and others).
   - `Command: <actual command>`
   - `Evidence:` code block with 1-3 raw lines
 - `Evidence:` lines must be verbatim from the latest tool output (except optional truncation with `...`).
+- WhatsApp default text style: plain text labels with colon (`Progress:`, `Path:`, `Command:`, `Evidence:`, `Hasil:`).
+- Avoid markdown emphasis markers (`**bold**`, `__underline__`) unless user explicitly asks markdown styling.
+- Emoji readability mode is allowed when owner prefers it.
+- Preferred semantic emoji mapping when enabled:
+  - `⏳ Progress:`
+  - `📁 Path:`
+  - `🔧 Command:`
+  - `📋 Evidence:`
+  - `✅ Hasil:`
 
 ## Exceptions
 Use single bubble only when content must stay contiguous:
@@ -63,6 +72,60 @@ Use single bubble only when content must stay contiguous:
 - For anti-burst pacing claims, do not write "delay/jeda" text unless actual wait command was executed.
 - Do not send duplicate consecutive bubbles with identical content.
 - Avoid standalone heading-only bubbles like `Step 1:`/`Step 2:` without command+evidence payload.
+- Avoid markdown tables by default in WhatsApp replies; prefer plain bullets or monospace blocks.
+- Avoid decorative separators (`---`) unless user explicitly asks that style.
+- For daily ops/runbook replies, never use separator-only lines and never use markdown tables unless user explicitly asks table format.
+- Prefer this compact proof style:
+  - `Command:` one line,
+  - fenced output snippet,
+  - `Arti:` one short interpretation line.
+- Keep label format consistent with colon form, not heading form (use `Progress:` not `**Progress**`).
+- Keep labels in colon form; optional emoji prefix is allowed when readability mode is desired.
+
+## Directory listing style
+- When user asks to "lihat isi folder/direktori", present a clean compact listing with short labels per entry.
+- Preferred format in one bubble:
+  - title line with absolute path,
+  - tree-like monospace list (or curated list if tree is too large),
+  - short human label on important entries.
+- Do not dump massive raw listing by default; summarize and offer deeper drill-down.
+- Prefer style like: `folder_name  <- short label` for key entries.
+- Default WhatsApp directory bubble template:
+  - `Path: /abs/path`
+  - `Isi utama:`
+  - fenced monospace tree/list where key lines use `name <- label`
+  - optional closing line: `Mau saya buka salah satu?`
+
+## File-open style
+- When user asks to open/read a file, provide:
+  1) quick identity (path, type/size),
+  2) what the file does,
+  3) key sections/values,
+  4) risk notes if relevant (secrets, destructive settings),
+  5) exact snippet lines as evidence.
+- Keep explanation detailed but structured; avoid vague one-liners.
+- Use heading blocks without separators; keep section flow compact.
+- Default WhatsApp file-open bubble order:
+  - `Path: ... | Type/Size: ...`
+  - `Fungsi:` one concise sentence
+  - `Poin penting:` 2-5 bullets
+  - `Cuplikan:` one fenced block with exact lines
+  - `Catatan risiko:` only when relevant
+
+## Media reply style
+- If user asks to send/show image, prioritize sending the actual image attachment first, then brief caption.
+- If image cannot be sent, state exact blocker and provide nearest fallback (path + metadata + summary).
+- Caption should be concise and descriptive; avoid redundant follow-up bubble if caption already confirms delivery.
+- Attachment-first contract for WhatsApp:
+  - send image payload first,
+  - caption max 1 short sentence,
+  - if fallback needed, one bubble with `Path`, `Format/Size`, `Reason`, `Fallback action`.
+
+## Daily conversation style (owner)
+- Prioritize practical task completion language for: apt, nginx/caddy, docker, searching.
+- Avoid trailing permission questions (`mau saya ...?`) when not blocked.
+- If execution cannot happen on current host, state blocker once and continue with target runbook + verify commands.
+- Keep runbook steps numbered and executable; each step should include command and expected check.
 
 ## Readability budget
 - Avoid overly dense mega-bubbles in final report.
