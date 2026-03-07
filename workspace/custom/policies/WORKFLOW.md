@@ -48,6 +48,8 @@
   - adding `...` marker.
 - Never change filenames, ports, process IDs, status codes, or command outputs from tool results.
 - If evidence in draft text conflicts with tool output, correct the text to match tool output before sending.
+- Do not send meta-only bubbles like "tes selesai", "alur pengiriman", or compliance recap without new technical evidence.
+- Prefer reporting what was executed and observed, not narrating internal process.
 
 ## Output location policy
 - Generated/demo files must stay under `.openclaw`:
@@ -83,6 +85,16 @@
   - section D: start/stop runbook.
 - Before final success claim, perform a quick consistency check:
   - evidence values in text must match tool outputs (path, file names, port, PID, endpoint status).
+
+## Final report shape (engineering)
+- Keep final report practical and readable:
+  - one section per bubble,
+  - each section contains immediate evidence,
+  - no standalone section titles without payload.
+- For command pairs in same context (for example runtime + health checks), keep them in one bubble when concise.
+- For project tree in final report, show curated structure (important files/dirs) and exclude heavy vendor folders by default.
+- If full tree is required, provide it only when user explicitly asks raw/full tree.
+- Before sending each bubble, perform dedupe check against the previous bubble; if identical, skip resend.
 
 ## Git hygiene
 - Commit only when asked.
