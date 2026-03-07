@@ -60,7 +60,8 @@ Use single bubble only when content must stay contiguous:
 - dense command output
 - structured tables that break if split
 - explicit raw/full/verbatim output requested by user
-- Do not wrap the entire reply as a single fenced block unless user explicitly asks raw/full dump.
+
+Do not wrap the entire reply as a single fenced block unless user explicitly asks raw/full dump.
 
 ## Evidence formatting
 - If user asks for raw/full output: keep each raw block contiguous in a single bubble/code block.
@@ -84,7 +85,6 @@ Use single bubble only when content must stay contiguous:
 - Do not send duplicate consecutive bubbles with identical content.
 - Avoid standalone heading-only bubbles like `Step 1:`/`Step 2:` without command+evidence payload.
 - Avoid markdown tables by default in WhatsApp replies; prefer plain bullets or monospace blocks.
-- Avoid decorative separators (`---`) unless user explicitly asks that style.
 - For daily ops/runbook replies, never use separator-only lines and never use markdown tables unless user explicitly asks table format.
 - Prefer this compact proof style:
   - `Command:` one line,

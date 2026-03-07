@@ -10,7 +10,6 @@ Owner command set for Doloris. Owner: Rifuki (`+6289669848875`).
 - Cold-start rule: first turn after `/reset` must still honor slash commands immediately.
 - In group context, `/open-group` and `/close-group` without args must target current group JID directly.
 - After config edits: re-read config and verify changes.
-- Recognize these literal commands in WA chat/group: `/open-group`, `/close-group`.
 - Recognize these literal commands in WA chat/group: `/reset`, `/open-group`, `/close-group`.
 - Never answer with "command/tool not available" for these commands.
 - If state already matches target value, respond `already active` and keep flow successful.
@@ -61,6 +60,14 @@ Steps:
 ## `/backup-self [message]`
 Backup current work to private repo (`self`).
 
+Execution:
+1. Check `git status -sb`.
+2. Stage safe changes (`git add -A`) excluding host-local secrets/config.
+3. Commit with provided message, or default `chore(self): backup workspace updates`.
+4. Push to `self` on current branch.
+5. Do not push to `origin` unless explicitly requested.
+6. Return commit hash + branch + push result.
+
 ## `/reset`
 Reset conversational state for the current session.
 
@@ -73,14 +80,6 @@ Response contract:
 - If reset succeeds: `✅ New session started.`
 - If already fresh/no active sub-agent: `✅ Session already fresh.`
 - Do not append extra greeting, planning text, or follow-up question.
-
-Execution:
-1. Check `git status -sb`.
-2. Stage safe changes (`git add -A`) excluding host-local secrets/config.
-3. Commit with provided message, or default `chore(self): backup workspace updates`.
-4. Push to `self` on current branch.
-5. Do not push to `origin` unless explicitly requested.
-6. Return commit hash + branch + push result.
 
 ## Safety
 - Only owner can run these commands.
