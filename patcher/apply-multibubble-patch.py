@@ -25,8 +25,11 @@ from typing import Iterable
 # Will be dynamically built based on --channels arg
 DELIVER_MARKER_TEMPLATE = '({channel_checks}) && typeof text === "string" && text.includes("\\n\\n")'
 WEB_PATCH_MARKER_A = 'const rawText = replyResult.text || "";'
-WEB_PATCH_MARKER_B = 'const paragraphParts = rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);'
-TELEGRAM_PATCH_MARKER = 'const markdownChunks = markdown.includes("\\n\\n") ? markdown.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean) : params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
+WEB_PATCH_MARKER_B_OLD = 'const paragraphParts = rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);'
+WEB_PATCH_MARKER_B = 'const paragraphParts = rawText.includes("```") ? [rawText] : rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);'
+WEB_PATCH_MARKER_C = 'const textChunks = rawText.includes("```") ? [markdownToWhatsApp(convertMarkdownTables(rawText, tableMode))] : paragraphParts.flatMap((part) => chunkMarkdownTextWithMode(markdownToWhatsApp(convertMarkdownTables(part, tableMode)), textLimit, chunkMode));'
+TELEGRAM_PATCH_MARKER_OLD = 'const markdownChunks = markdown.includes("\\n\\n") ? markdown.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean) : params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
+TELEGRAM_PATCH_MARKER = 'const markdownChunks = markdown.includes("```") ? [markdown] : markdown.includes("\\n\\n") ? markdown.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean) : params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
 TELEGRAM_PREVIEW_MARKER = 'const shouldSendTelegramPreviewUpdate = (payload, info) => {'
 TELEGRAM_PREVIEW_GUARD = 'if (!shouldSendTelegramPreviewUpdate(payload, info)) return;'
 
@@ -42,6 +45,50 @@ TELEGRAM_PREVIEW_HELPER = """\tconst shouldSendTelegramPreviewUpdate = (payload,
 \t\treturn false;
 \t};
 """
+
+DELIVER_DEDUPE_OLD = """\t\tif (textOnly) {
+\t\t\tconst progressLikeCount = normalizedPayloads.filter((p) => progressPayloadPattern.test(p.text || \"\")).length;
+\t\t\tif (progressLikeCount >= 2) {
+\t\t\t\tnormalizedPayloads = [{
+\t\t\t\t\t...normalizedPayloads[0],
+\t\t\t\t\ttext: normalizedPayloads.map((p) => p.text || \"\").join(\"\\n\\n\"),
+\t\t\t\t\tmediaUrl: void 0,
+\t\t\t\t\tmediaUrls: void 0
+\t\t\t\t}];
+\t\t\t}
+\t\t}"""
+
+DELIVER_DEDUPE_NEW = """\t\tif (textOnly) {
+\t\t\tconst fencedCount = normalizedPayloads.filter((p) => typeof p.text === \"string\" && p.text.includes(\"```\")).length;
+\t\t\tif (fencedCount >= 1) {
+\t\t\t\tnormalizedPayloads = [normalizedPayloads[normalizedPayloads.length - 1]];
+\t\t\t} else {
+\t\t\t\tconst progressLikeCount = normalizedPayloads.filter((p) => progressPayloadPattern.test(p.text || \"\")).length;
+\t\t\t\tif (progressLikeCount >= 2) {
+\t\t\t\t\tnormalizedPayloads = [{
+\t\t\t\t\t\t...normalizedPayloads[0],
+\t\t\t\t\t\ttext: normalizedPayloads.map((p) => p.text || \"\").join(\"\\n\\n\"),
+\t\t\t\t\t\tmediaUrl: void 0,
+\t\t\t\t\t\tmediaUrls: void 0
+\t\t\t\t\t}];
+\t\t\t\t}
+\t\t\t}
+\t\t}"""
+
+DELIVER_DEDUPE_NEW_V2 = """\t\tconst fencedCount = normalizedPayloads.filter((p) => typeof p.text === \"string\" && p.text.includes(\"```\")).length;
+\t\tif (fencedCount >= 1) {
+\t\t\tnormalizedPayloads = [normalizedPayloads[normalizedPayloads.length - 1]];
+\t\t} else if (textOnly) {
+\t\t\tconst progressLikeCount = normalizedPayloads.filter((p) => progressPayloadPattern.test(p.text || \"\")).length;
+\t\t\tif (progressLikeCount >= 2) {
+\t\t\t\tnormalizedPayloads = [{
+\t\t\t\t\t...normalizedPayloads[0],
+\t\t\t\t\ttext: normalizedPayloads.map((p) => p.text || \"\").join(\"\\n\\n\"),
+\t\t\t\t\tmediaUrl: void 0,
+\t\t\t\t\tmediaUrls: void 0
+\t\t\t\t}];
+\t\t\t}
+\t\t}"""
 
 
 def run(cmd: list[str]) -> str:
@@ -143,15 +190,89 @@ def backup_path(path: Path) -> Path:
 def build_deliver_patched(data: str, channels: list[str], force: bool = False) -> tuple[str | None, str]:
     # Build channel check: channel === "whatsapp" || channel === "telegram"
     channel_checks = " || ".join(f'channel === "{ch}"' for ch in channels)
-    marker = f'({channel_checks}) && typeof text === "string" && text.includes("\\n\\n")'
+    marker = f'({channel_checks}) && typeof text === "string" && text.includes("\\n\\n") && !text.includes("```")'
+    atomic_guard_marker = 'globalThis.__openclawFencePayloadDedupe'
     sendpayload_guard = (
+        f'if (handler.sendPayload && effectivePayload.channelData && !(({channel_checks}) && '
+        'payloadSummary.mediaUrls.length === 0 && typeof payloadSummary.text === "string" && '
+        'payloadSummary.text.includes("\\n\\n") && !payloadSummary.text.includes("```"))) {'
+    )
+    
+    # Upgrade old split condition that breaks fenced code blocks
+    old_split = f'({channel_checks}) && typeof text === "string" && text.includes("\\n\\n")'
+    old_sendpayload = (
         f'if (handler.sendPayload && effectivePayload.channelData && !(({channel_checks}) && '
         'payloadSummary.mediaUrls.length === 0 && typeof payloadSummary.text === "string" && '
         'payloadSummary.text.includes("\\n\\n"))) {'
     )
-    
+    legacy_split_conditions = [
+        '(channel === "whatsapp") && typeof text === "string" && text.includes("\\n\\n")',
+        '(channel === "whatsapp" || channel === "telegram") && typeof text === "string" && text.includes("\\n\\n")',
+        f'({channel_checks}) && typeof text === "string" && text.includes("\\n\\n")',
+    ]
+    upgraded_legacy_split = False
+    for cond in legacy_split_conditions:
+        guarded = cond + ' && !text.includes("```")'
+        if cond in data and guarded not in data:
+            data = data.replace(cond, guarded)
+            upgraded_legacy_split = True
+
+    upgraded_dedupe = False
+    if DELIVER_DEDUPE_OLD in data and DELIVER_DEDUPE_NEW not in data:
+        data = data.replace(DELIVER_DEDUPE_OLD, DELIVER_DEDUPE_NEW, 1)
+        upgraded_dedupe = True
+    if DELIVER_DEDUPE_NEW in data and DELIVER_DEDUPE_NEW_V2 not in data:
+        data = data.replace(DELIVER_DEDUPE_NEW, DELIVER_DEDUPE_NEW_V2, 1)
+        upgraded_dedupe = True
+
+    old_atomic_block = (
+        f'\tif ({channel_checks} && typeof text === "string" && text.includes("```")) {{\n'
+        f'\t\tthrowIfAborted(abortSignal);\n'
+        f'\t\tresults.push(await handler.sendText(text, overrides));\n'
+        f'\t\treturn;\n'
+        f'\t}}\n'
+    )
+    new_atomic_block = (
+        f'\tif ({channel_checks} && typeof text === "string" && text.includes("```")) {{\n'
+        f'\t\tconst fenceCount = (text.match(/```/g) || []).length;\n'
+        f'\t\tif (fenceCount % 2 === 1) return;\n'
+        f'\t\tconst dedupeStore = globalThis.__openclawFencePayloadDedupe ?? (globalThis.__openclawFencePayloadDedupe = new Map());\n'
+        f'\t\tconst dedupeKey = `${{channel}}:${{to}}`;\n'
+        f'\t\tconst dedupeText = text.trim();\n'
+        f'\t\tconst prev = dedupeStore.get(dedupeKey);\n'
+        f'\t\tconst now = Date.now();\n'
+        f'\t\tif (prev && prev.text === dedupeText && now - prev.ts < 15000) return;\n'
+        f'\t\tdedupeStore.set(dedupeKey, {{ text: dedupeText, ts: now }});\n'
+        f'\t\tthrowIfAborted(abortSignal);\n'
+        f'\t\tresults.push(await handler.sendText(text, overrides));\n'
+        f'\t\treturn;\n'
+        f'\t}}\n'
+    )
+
+    pattern = re.compile(
+        r'(?P<i>^[ \t]*)const sendTextChunks = async \(text, overrides\) => \{\n(?P=i)[ \t]*throwIfAborted\(abortSignal\);\n',
+        re.MULTILINE,
+    )
+    upgraded_atomic_guard = False
+    if old_atomic_block in data and new_atomic_block not in data:
+        data = data.replace(old_atomic_block, new_atomic_block, 1)
+        upgraded_atomic_guard = True
+    m = pattern.search(data)
+    if m and atomic_guard_marker not in data:
+        indent = m.group("i")
+        atomic_block_indented = "".join(indent + line if line else line for line in new_atomic_block.splitlines(keepends=True))
+        data = data[:m.end()] + atomic_block_indented + data[m.end():]
+        upgraded_atomic_guard = True
+
+    if old_split in data and marker not in data:
+        data = data.replace(old_split, marker)
+    if old_sendpayload in data and sendpayload_guard not in data:
+        data = data.replace(old_sendpayload, sendpayload_guard)
+
+    has_legacy_split = any(cond in data for cond in legacy_split_conditions)
+
     # Check if exact patch already exists (split + sendPayload guard)
-    if marker in data and sendpayload_guard in data:
+    if marker in data and sendpayload_guard in data and not has_legacy_split:
         return None, "already patched (exact match)"
 
     # If split marker exists but sendPayload guard missing, upgrade in place
@@ -162,6 +283,13 @@ def build_deliver_patched(data: str, channels: list[str], force: bool = False) -
         )
         if upgraded != data:
             return upgraded, "upgraded with sendPayload split guard"
+
+    if upgraded_legacy_split:
+        return data, "upgraded legacy split guard"
+    if upgraded_dedupe:
+        return data, "upgraded fenced payload dedupe"
+    if upgraded_atomic_guard:
+        return data, "upgraded fenced atomic guard"
     
     # Check if old patch exists (can upgrade with --force)
     old_patch_exists = 'channel === "whatsapp" && typeof text === "string" && text.includes("\\n\\n")' in data
@@ -184,17 +312,13 @@ def build_deliver_patched(data: str, channels: list[str], force: bool = False) -
         if upgraded != data:
             return upgraded, "upgraded from old patch"
 
-    pattern = re.compile(
-        r'(?P<i>^[ \t]*)const sendTextChunks = async \(text, overrides\) => \{\n(?P=i)[ \t]*throwIfAborted\(abortSignal\);\n',
-        re.MULTILINE,
-    )
     m = pattern.search(data)
     if not m:
         return None, "needle not found"
 
     indent = m.group("i")
     block = (
-        f'{indent}\tif ({channel_checks} && typeof text === "string" && text.includes("\\n\\n")) {{\n'
+        f'{indent}\tif ({channel_checks} && typeof text === "string" && text.includes("\\n\\n") && !text.includes("```")) {{\n'
         f'{indent}\t\tconst bubbles = text.split(/\\n\\n+/).map((s) => s.trim()).filter(Boolean);\n'
         f'{indent}\t\tfor (const bubble of bubbles) {{\n'
         f'{indent}\t\t\tthrowIfAborted(abortSignal);\n'
@@ -216,8 +340,16 @@ def build_deliver_patched(data: str, channels: list[str], force: bool = False) -
 def build_web_patched(text: str) -> tuple[str | None, str]:
     if "async function deliverWebReply(" not in text:
         return None, "no deliverWebReply"
-    if WEB_PATCH_MARKER_A in text and WEB_PATCH_MARKER_B in text:
+    if WEB_PATCH_MARKER_A in text and WEB_PATCH_MARKER_B in text and WEB_PATCH_MARKER_C in text:
         return None, "already patched"
+
+    # Upgrade legacy web patch (paragraph split without fenced-code protection)
+    legacy_line = 'const textChunks = paragraphParts.flatMap((part) => chunkMarkdownTextWithMode(markdownToWhatsApp(convertMarkdownTables(part, tableMode)), textLimit, chunkMode));'
+    if WEB_PATCH_MARKER_B_OLD in text and WEB_PATCH_MARKER_B not in text:
+        upgraded = text.replace(WEB_PATCH_MARKER_B_OLD, WEB_PATCH_MARKER_B, 1)
+        upgraded = upgraded.replace(legacy_line, WEB_PATCH_MARKER_C, 1)
+        if upgraded != text:
+            return upgraded, "upgraded fenced-code safe split"
 
     lines = text.splitlines(keepends=True)
 
@@ -240,9 +372,9 @@ def build_web_patched(text: str) -> tuple[str | None, str]:
     indent = lines[target][: len(lines[target]) - len(lines[target].lstrip())]
     replacement = [
         indent + 'const rawText = replyResult.text || "";\n',
-        indent + 'const paragraphParts = rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);\n',
+        indent + 'const paragraphParts = rawText.includes("```") ? [rawText] : rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);\n',
         indent
-        + 'const textChunks = paragraphParts.flatMap((part) => chunkMarkdownTextWithMode(markdownToWhatsApp(convertMarkdownTables(part, tableMode)), textLimit, chunkMode));\n',
+        + 'const textChunks = rawText.includes("```") ? [markdownToWhatsApp(convertMarkdownTables(rawText, tableMode))] : paragraphParts.flatMap((part) => chunkMarkdownTextWithMode(markdownToWhatsApp(convertMarkdownTables(part, tableMode)), textLimit, chunkMode));\n',
     ]
 
     patched_lines = lines[:target] + replacement + lines[target + 1 :]
@@ -255,9 +387,11 @@ def build_telegram_bot_patched(text: str) -> tuple[str | None, str]:
 
     if "function buildChunkTextResolver(params)" in patched:
         old_line = 'const markdownChunks = params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
-        new_line = 'const markdownChunks = markdown.includes("\\n\\n") ? markdown.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean) : params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
-        if old_line in patched and TELEGRAM_PATCH_MARKER not in patched:
-            patched = patched.replace(old_line, new_line, 1)
+        if TELEGRAM_PATCH_MARKER_OLD in patched and TELEGRAM_PATCH_MARKER not in patched:
+            patched = patched.replace(TELEGRAM_PATCH_MARKER_OLD, TELEGRAM_PATCH_MARKER, 1)
+            changed = True
+        elif old_line in patched and TELEGRAM_PATCH_MARKER not in patched:
+            patched = patched.replace(old_line, TELEGRAM_PATCH_MARKER, 1)
             changed = True
 
     if "const splitTextIntoLaneSegments = (text) => {" in patched:
@@ -290,9 +424,10 @@ def build_telegram_bot_patched(text: str) -> tuple[str | None, str]:
 
 def status_deliver(path: Path) -> tuple[str, str]:
     data = path.read_text(encoding="utf-8", errors="ignore")
-    # Check if any variant of multi-bubble patch exists
-    if ('channel === "whatsapp"' in data or 'channel === "telegram"' in data) and 'text.includes("\\n\\n")' in data:
+    if 'text.includes("\\n\\n") && !text.includes("```")' in data:
         return "patched", "marker present"
+    if ('channel === "whatsapp"' in data or 'channel === "telegram"' in data) and 'text.includes("\\n\\n")' in data:
+        return "unpatched", "split guard missing fenced-code protection"
     if "const sendTextChunks = async (text, overrides) => {" in data:
         return "unpatched", "sendTextChunks found"
     return "unknown", "signature not found"
@@ -302,8 +437,10 @@ def status_web(path: Path) -> tuple[str, str]:
     data = path.read_text(encoding="utf-8", errors="ignore")
     if "async function deliverWebReply(" not in data:
         return "skip", "no deliverWebReply"
-    if WEB_PATCH_MARKER_A in data and WEB_PATCH_MARKER_B in data:
+    if WEB_PATCH_MARKER_A in data and WEB_PATCH_MARKER_B in data and WEB_PATCH_MARKER_C in data:
         return "patched", "markers present"
+    if WEB_PATCH_MARKER_B_OLD in data:
+        return "unpatched", "legacy split without fenced-code guard"
     if "const textChunks = chunkMarkdownTextWithMode(" in data:
         return "unpatched", "legacy textChunks path"
     return "unknown", "signature not found"
@@ -336,6 +473,26 @@ def discover_telegram_chunk_files(dist: Path) -> list[Path]:
     plugin_sdk = dist / "plugin-sdk"
     if plugin_sdk.is_dir():
         files |= set(plugin_sdk.glob("reply-*.js"))
+    return sorted(files)
+
+
+def discover_deliver_files(dist: Path) -> list[Path]:
+    files: set[Path] = set()
+    files |= set(dist.glob("deliver-*.js"))
+    plugin_sdk = dist / "plugin-sdk"
+    if plugin_sdk.is_dir():
+        files |= set(plugin_sdk.glob("deliver-*.js"))
+    return sorted(files)
+
+
+def discover_web_files(dist: Path) -> list[Path]:
+    files: set[Path] = set()
+    files |= set(dist.glob("channel-web-*.js"))
+    files |= set(dist.glob("web-*.js"))
+    plugin_sdk = dist / "plugin-sdk"
+    if plugin_sdk.is_dir():
+        files |= set(plugin_sdk.glob("channel-web-*.js"))
+        files |= set(plugin_sdk.glob("web-*.js"))
     return sorted(files)
 
 
@@ -421,8 +578,8 @@ def main() -> int:
         telegram_total = telegram_patched = telegram_unpatched = telegram_unknown = 0
 
         for dist in dist_dirs:
-            deliver_files = sorted(dist.glob("deliver-*.js"))
-            web_files = sorted(list(dist.glob("channel-web-*.js")) + list(dist.glob("web-*.js")))
+            deliver_files = discover_deliver_files(dist)
+            web_files = discover_web_files(dist)
             telegram_files = discover_telegram_chunk_files(dist)
             if deliver_files or web_files or telegram_files:
                 print(f"\nStatus in: {dist}")
@@ -475,8 +632,8 @@ def main() -> int:
     node_bin = find_node_binary() if args.strict and not args.dry_run else None
 
     for dist in dist_dirs:
-        deliver_files = sorted(dist.glob("deliver-*.js"))
-        web_files = sorted(list(dist.glob("channel-web-*.js")) + list(dist.glob("web-*.js")))
+        deliver_files = discover_deliver_files(dist)
+        web_files = discover_web_files(dist)
         telegram_files = discover_telegram_chunk_files(dist)
         files = [("deliver", f) for f in deliver_files] + [("web", f) for f in web_files] + [("telegram", f) for f in telegram_files]
         if not files:

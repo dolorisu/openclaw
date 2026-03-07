@@ -7,6 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MULTIBUBBLE_SCRIPT="$SCRIPT_DIR/apply-multibubble-patch.py"
 PROGRESSIVE_SCRIPT="$SCRIPT_DIR/apply-progressive.sh"
 TAIL_GUARD_SCRIPT="$SCRIPT_DIR/apply-wa-progress-tail-guard.py"
+OUTBOUND_DEDUPE_SCRIPT="$SCRIPT_DIR/apply-wa-outbound-dedupe.py"
 
 MODE="apply"
 RESTART_GATEWAY=1
@@ -31,7 +32,8 @@ Sequence (apply mode):
   1) Multi-bubble patch (WA + Telegram + Telegram bot path)
   2) Progressive updates patch (enable or disable)
   3) WA progress tail guard patch (progressive mode only)
-  4) Restart gateway (unless --no-restart)
+  4) WA outbound dedupe/fence patch
+  5) Restart gateway (unless --no-restart)
 EOF
 }
 
@@ -81,6 +83,10 @@ if [[ ! -f "$TAIL_GUARD_SCRIPT" ]]; then
   echo "Missing script: $TAIL_GUARD_SCRIPT" >&2
   exit 1
 fi
+if [[ ! -f "$OUTBOUND_DEDUPE_SCRIPT" ]]; then
+  echo "Missing script: $OUTBOUND_DEDUPE_SCRIPT" >&2
+  exit 1
+fi
 
 if [[ "$MODE" == "status" ]]; then
   echo "== Multi-bubble status =="
@@ -91,6 +97,9 @@ if [[ "$MODE" == "status" ]]; then
   echo
   echo "== WA tail guard status =="
   python3 "$TAIL_GUARD_SCRIPT" --status
+  echo
+  echo "== WA outbound dedupe status =="
+  python3 "$OUTBOUND_DEDUPE_SCRIPT" --status
   exit 0
 fi
 
@@ -99,11 +108,11 @@ if [[ "$FORCE_MULTIBUBBLE" -eq 1 ]]; then
   MULTIBUBBLE_ARGS+=(--force)
 fi
 
-echo "== Step 1/4: Multi-bubble patch =="
+echo "== Step 1/5: Multi-bubble patch =="
 python3 "$MULTIBUBBLE_SCRIPT" "${MULTIBUBBLE_ARGS[@]}"
 
 echo
-echo "== Step 2/4: Progressive updates patch ($PROGRESSIVE_MODE) =="
+echo "== Step 2/5: Progressive updates patch ($PROGRESSIVE_MODE) =="
 if [[ "$PROGRESSIVE_MODE" == "disable" ]]; then
   "$PROGRESSIVE_SCRIPT" --disable
 else
@@ -112,16 +121,20 @@ fi
 
 echo
 if [[ "$PROGRESSIVE_MODE" == "disable" ]]; then
-  echo "== Step 3/4: WA progress tail guard =="
+  echo "== Step 3/5: WA progress tail guard =="
   echo "Skipped (progressive mode disabled)."
 else
-  echo "== Step 3/4: WA progress tail guard =="
+  echo "== Step 3/5: WA progress tail guard =="
   python3 "$TAIL_GUARD_SCRIPT" --strict
 fi
 
+echo
+echo "== Step 4/5: WA outbound dedupe/fence patch =="
+python3 "$OUTBOUND_DEDUPE_SCRIPT"
+
 if [[ "$RESTART_GATEWAY" -eq 1 ]]; then
   echo
-  echo "== Step 4/4: Restart gateway =="
+  echo "== Step 5/5: Restart gateway =="
   openclaw gateway restart
 else
   echo

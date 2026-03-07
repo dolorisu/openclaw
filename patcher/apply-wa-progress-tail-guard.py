@@ -69,7 +69,7 @@ NEW_SPLIT_CORE = """\tconst normalized = text.replace(/\\r\\n?/g, \"\\n\");
 \t\thead: normalized,
 \t\ttail: \"\"
 \t};"""
-NEWEST_SPLIT_CORE = """\tconst normalized = text.replace(/\\r\\n?/g, "\\n");
+OLD_NEWEST_SPLIT_CORE = """\tconst normalized = text.replace(/\\r\\n?/g, "\\n");
 \tconst trimmed = normalized.trimEnd();
 \tconst endsLikeSentence = /[.!?](?:[\"')\\]]+)?$/.test(trimmed);
 \tif (normalized.length < 80) return {
@@ -92,6 +92,76 @@ NEWEST_SPLIT_CORE = """\tconst normalized = text.replace(/\\r\\n?/g, "\\n");
 \tif (/^\\d+\\.$/.test(headLastLine)) {
 \t\thead = head.slice(0, head.length - headLastLine.length).trimEnd();
 \t\ttail = joinProgressFragments(headLastLine, tail);
+\t};"""
+NEWEST_SPLIT_CORE = """\tconst normalized = text.replace(/\\r\\n?/g, "\\n");
+\tconst trimmed = normalized.trimEnd();
+\tconst endsLikeSentence = /[.!?](?:[\"')\\]]+)?$/.test(trimmed);
+\tconst fenceCount = (normalized.match(/```/g) || []).length;
+\tif (fenceCount % 2 === 1) return {
+\t\thead: "",
+\t\ttail: normalized
+\t};
+\tif (fenceCount > 0) return {
+\t\thead: normalized,
+\t\ttail: ""
+\t};
+\tif (/^Tree\\b[^\\n]*:?$/.test(trimmed)) return {
+\t\thead: "",
+\t\ttail: normalized
+\t};
+\tif (/^Command:\\s+/m.test(normalized) && !/^Evidence:\\s*/m.test(normalized)) return {
+\t\thead: "",
+\t\ttail: normalized
+\t};
+\tif (/^Command:\\s+/m.test(normalized) || /^Evidence:\\s*/m.test(normalized) || /^Check\\s+/m.test(normalized)) return {
+\t\thead: normalized,
+\t\ttail: ""
+\t};
+\tif (normalized.length < 80) return {
+\t\thead: normalized,
+\t\ttail: ""
+\t};
+\tlet cut = -1;
+\tfor (const match of normalized.matchAll(TRAILING_SENTENCE_BOUNDARY_RE)) cut = (match.index ?? 0) + match[0].length;
+\tif (cut <= 0 || cut >= normalized.length) return {
+\t\thead: !endsLikeSentence && !/\\n{2,}/.test(normalized) ? "" : normalized,
+\t\ttail: !endsLikeSentence && !/\\n{2,}/.test(normalized) ? normalized : ""
+\t};
+\tlet head = normalized.slice(0, cut).trimEnd();
+\tlet tail = normalized.slice(cut).trimStart();
+\tif (!tail || tail.length > 220 || /\\n{2,}/.test(tail) || /[.!?](?:[\"')\\]]+)?$/.test(tail.trimEnd())) return {
+\t\thead: normalized,
+\t\ttail: ""
+\t};
+\tconst headLastLine = head.split("\\n").pop()?.trim() ?? "";
+\tif (/^\\d+\\.$/.test(headLastLine)) {
+\t\thead = head.slice(0, head.length - headLastLine.length).trimEnd();
+\t\ttail = joinProgressFragments(headLastLine, tail);
+\t};"""
+OLD_ATOMIC_GUARD = """\tif (/```/.test(normalized) || /^Command:\\s+/m.test(normalized) || /^Evidence:\\s*/m.test(normalized) || /^Check\\s+/m.test(normalized)) return {
+\t\thead: normalized,
+\t\ttail: ""
+\t};"""
+NEW_ATOMIC_GUARD = """\tconst fenceCount = (normalized.match(/```/g) || []).length;
+\tif (fenceCount % 2 === 1) return {
+\t\thead: "",
+\t\ttail: normalized
+\t};
+\tif (fenceCount > 0) return {
+\t\thead: normalized,
+\t\ttail: ""
+\t};
+\tif (/^Tree\\b[^\\n]*:?$/.test(trimmed)) return {
+\t\thead: "",
+\t\ttail: normalized
+\t};
+\tif (/^Command:\\s+/m.test(normalized) && !/^Evidence:\\s*/m.test(normalized)) return {
+\t\thead: "",
+\t\ttail: normalized
+\t};
+\tif (/^Command:\\s+/m.test(normalized) || /^Evidence:\\s*/m.test(normalized) || /^Check\\s+/m.test(normalized)) return {
+\t\thead: normalized,
+\t\ttail: ""
 \t};"""
 NORMALIZED_SNIPPET = """\t\t\t\tconst normalizedPayload = isProgressUpdate ? {
 \t\t\t\t\t...payload,
@@ -172,6 +242,27 @@ function splitTrailingProgressFragment(text) {
 \tconst normalized = text.replace(/\\r\\n?/g, "\\n");
 \tconst trimmed = normalized.trimEnd();
 \tconst endsLikeSentence = /[.!?](?:[\"')\\]]+)?$/.test(trimmed);
+\tconst fenceCount = (normalized.match(/```/g) || []).length;
+\tif (fenceCount % 2 === 1) return {
+\t\thead: "",
+\t\ttail: normalized
+\t};
+\tif (fenceCount > 0) return {
+\t\thead: normalized,
+\t\ttail: ""
+\t};
+\tif (/^Tree\\b[^\\n]*:?$/.test(trimmed)) return {
+\t\thead: "",
+\t\ttail: normalized
+\t};
+\tif (/^Command:\\s+/m.test(normalized) && !/^Evidence:\\s*/m.test(normalized)) return {
+\t\thead: "",
+\t\ttail: normalized
+\t};
+\tif (/^Command:\\s+/m.test(normalized) || /^Evidence:\\s*/m.test(normalized) || /^Check\\s+/m.test(normalized)) return {
+\t\thead: normalized,
+\t\ttail: ""
+\t};
 \tif (normalized.length < 80) return {
 \t\thead: normalized,
 \t\ttail: ""
@@ -202,6 +293,7 @@ function shouldSendProgressPreviewText(text) {
 \tif (typeof text !== "string") return true;
 \tconst normalized = text.replace(/\\r\\n?/g, "\\n").trim();
 \tif (!normalized) return false;
+\tif (/```|~~~/.test(normalized)) return false;
 \tif (normalized.length >= 260) return true;
 \tif (/\\n{2,}/.test(normalized)) return true;
 \tif (/^[\\s>*-]*\\d+[.)]\\s+/m.test(normalized) || /^[\\s>*-]*[-*+]\\s+/m.test(normalized)) return true;
@@ -371,7 +463,8 @@ def patch_content(text: str) -> tuple[str | None, str]:
         patched = patched.replace(OLD_SPLIT_CORE, NEW_SPLIT_CORE, 1)
     if NEW_SPLIT_CORE in patched:
         patched = patched.replace(NEW_SPLIT_CORE, NEWEST_SPLIT_CORE, 1)
-
+    if OLD_NEWEST_SPLIT_CORE in patched:
+        patched = patched.replace(OLD_NEWEST_SPLIT_CORE, NEWEST_SPLIT_CORE, 1)
     if TAIL_MARKER not in patched:
         marker = "\tlet didSendReply = false;"
         if marker not in patched:
@@ -387,6 +480,7 @@ def patch_content(text: str) -> tuple[str | None, str]:
 \tif (typeof text !== \"string\") return true;
 \tconst normalized = text.replace(/\\r\\n?/g, \"\\n\").trim();
 \tif (!normalized) return false;
+\tif (/```|~~~/.test(normalized)) return false;
 \tif (normalized.length >= 260) return true;
 \tif (/\\n{2,}/.test(normalized)) return true;
 \tif (/^[\\s>*-]*\\d+[.)]\\s+/m.test(normalized) || /^[\\s>*-]*[-*+]\\s+/m.test(normalized)) return true;
@@ -394,6 +488,30 @@ def patch_content(text: str) -> tuple[str | None, str]:
 }
 """
         patched = patched[:idx] + helper_fn + patched[idx:]
+
+    old_preview_fn = r"""function shouldSendProgressPreviewText(text) {
+	if (typeof text !== "string") return true;
+	const normalized = text.replace(/\r\n?/g, "\n").trim();
+	if (!normalized) return false;
+	if (normalized.length >= 260) return true;
+	if (/\n{2,}/.test(normalized)) return true;
+	if (/^[\s>*-]*\d+[.)]\s+/m.test(normalized) || /^[\s>*-]*[-*+]\s+/m.test(normalized)) return true;
+	return false;
+}
+"""
+    new_preview_fn = r"""function shouldSendProgressPreviewText(text) {
+	if (typeof text !== "string") return true;
+	const normalized = text.replace(/\r\n?/g, "\n").trim();
+	if (!normalized) return false;
+	if (/```|~~~/.test(normalized)) return false;
+	if (normalized.length >= 260) return true;
+	if (/\n{2,}/.test(normalized)) return true;
+	if (/^[\s>*-]*\d+[.)]\s+/m.test(normalized) || /^[\s>*-]*[-*+]\s+/m.test(normalized)) return true;
+	return false;
+}
+"""
+    if old_preview_fn in patched and new_preview_fn not in patched:
+        patched = patched.replace(old_preview_fn, new_preview_fn, 1)
 
     if NORMALIZED_PATCHED_WITH_PREVIEW_GUARD not in patched:
         if NORMALIZED_PATCHED in patched:
