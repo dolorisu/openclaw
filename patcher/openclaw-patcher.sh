@@ -11,22 +11,26 @@ TAIL_GUARD_SCRIPT="$SCRIPT_DIR/apply-wa-progress-tail-guard.py"
 MODE="apply"
 RESTART_GATEWAY=1
 FORCE_MULTIBUBBLE=0
+PROGRESSIVE_MODE="enable"
 
 usage() {
   cat <<'EOF'
 Usage:
   openclaw-patcher.sh [--status] [--no-restart] [--force-multibubble]
+                      [--progressive|--no-progressive]
 
 Options:
   --status             Show status only, do not apply patches
   --no-restart         Skip gateway restart (apply mode only)
   --force-multibubble  Add --force to multi-bubble patcher
+  --progressive        Enable progressive mode (default)
+  --no-progressive     Disable progressive mode (final-only replies)
   -h, --help           Show this help
 
 Sequence (apply mode):
   1) Multi-bubble patch (WA + Telegram + Telegram bot path)
-  2) Progressive updates patch
-  3) WA progress tail guard patch
+  2) Progressive updates patch (enable or disable)
+  3) WA progress tail guard patch (progressive mode only)
   4) Restart gateway (unless --no-restart)
 EOF
 }
@@ -43,6 +47,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --force-multibubble)
       FORCE_MULTIBUBBLE=1
+      shift
+      ;;
+    --progressive)
+      PROGRESSIVE_MODE="enable"
+      shift
+      ;;
+    --no-progressive)
+      PROGRESSIVE_MODE="disable"
       shift
       ;;
     -h|--help)
@@ -91,12 +103,21 @@ echo "== Step 1/4: Multi-bubble patch =="
 python3 "$MULTIBUBBLE_SCRIPT" "${MULTIBUBBLE_ARGS[@]}"
 
 echo
-echo "== Step 2/4: Progressive updates patch =="
-"$PROGRESSIVE_SCRIPT"
+echo "== Step 2/4: Progressive updates patch ($PROGRESSIVE_MODE) =="
+if [[ "$PROGRESSIVE_MODE" == "disable" ]]; then
+  "$PROGRESSIVE_SCRIPT" --disable
+else
+  "$PROGRESSIVE_SCRIPT" --enable
+fi
 
 echo
-echo "== Step 3/4: WA progress tail guard =="
-python3 "$TAIL_GUARD_SCRIPT" --strict
+if [[ "$PROGRESSIVE_MODE" == "disable" ]]; then
+  echo "== Step 3/4: WA progress tail guard =="
+  echo "Skipped (progressive mode disabled)."
+else
+  echo "== Step 3/4: WA progress tail guard =="
+  python3 "$TAIL_GUARD_SCRIPT" --strict
+fi
 
 if [[ "$RESTART_GATEWAY" -eq 1 ]]; then
   echo

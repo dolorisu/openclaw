@@ -15,8 +15,8 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+MODE="enable"
 
 # Detect OS for sed compatibility
 detect_sed_inplace() {
@@ -123,13 +123,13 @@ check_patch_status() {
     fi
 }
 
-# Show status
+# Parse options
 if [[ "${1:-}" == "--status" ]]; then
     echo "Progressive updates patch status:"
     echo
     for file in "${FILES[@]}"; do
         if [[ -f "$file" ]]; then
-            status=$(check_patch_status "$file")
+            status=$(check_patch_status "$file" || true)
             basename=$(basename "$file")
             echo "  $basename: $status"
         else
@@ -139,8 +139,27 @@ if [[ "${1:-}" == "--status" ]]; then
     exit 0
 fi
 
+if [[ "${1:-}" == "--disable" ]]; then
+    MODE="disable"
+elif [[ -n "${1:-}" && "${1:-}" != "--enable" ]]; then
+    echo "Usage: $0 [--status|--enable|--disable]" >&2
+    exit 2
+fi
+
+if [[ "$MODE" == "disable" ]]; then
+    SEARCH_TOKEN='disableBlockStreaming: false,'
+    REPLACE_TOKEN='disableBlockStreaming: true,'
+    ACTION_LABEL='disable progressive updates'
+    SUCCESS_LABEL='Progressive updates disabled'
+else
+    SEARCH_TOKEN='disableBlockStreaming: true,'
+    REPLACE_TOKEN='disableBlockStreaming: false,'
+    ACTION_LABEL='enable progressive updates'
+    SUCCESS_LABEL='Progressive updates enabled'
+fi
+
 # Apply patch
-echo "Applying progressive updates patch..."
+echo "Applying patch to $ACTION_LABEL..."
 echo "Detected sed mode: $SED_INPLACE"
 echo
 
@@ -158,9 +177,15 @@ for file in "${FILES[@]}"; do
     fi
     
     # Check current status
-    if grep -q "disableBlockStreaming: false," "$file"; then
+    if grep -q "$REPLACE_TOKEN" "$file"; then
         echo "  ⏭️  $basename: already patched"
         skipped_count=$((skipped_count + 1))
+        continue
+    fi
+
+    if ! grep -q "$SEARCH_TOKEN" "$file"; then
+        echo "  ❌ $basename: expected token not found"
+        error_count=$((error_count + 1))
         continue
     fi
     
@@ -171,9 +196,9 @@ for file in "${FILES[@]}"; do
     # Apply patch (cross-platform sed)
     if [[ "$SED_INPLACE" == "sed -i" ]]; then
         # GNU sed (Linux)
-        if sed -i 's/disableBlockStreaming: true,/disableBlockStreaming: false,/g' "$file"; then
+        if sed -i "s/$SEARCH_TOKEN/$REPLACE_TOKEN/g" "$file"; then
             # Verify patch applied
-            if grep -q "disableBlockStreaming: false," "$file"; then
+            if grep -q "$REPLACE_TOKEN" "$file"; then
                 echo "  ✅ $basename: patched (backup: $(basename "$backup"))"
                 patched_count=$((patched_count + 1))
             else
@@ -188,9 +213,9 @@ for file in "${FILES[@]}"; do
         fi
     else
         # BSD sed (macOS)
-        if sed -i '' 's/disableBlockStreaming: true,/disableBlockStreaming: false,/g' "$file"; then
+        if sed -i '' "s/$SEARCH_TOKEN/$REPLACE_TOKEN/g" "$file"; then
             # Verify patch applied
-            if grep -q "disableBlockStreaming: false," "$file"; then
+            if grep -q "$REPLACE_TOKEN" "$file"; then
                 echo "  ✅ $basename: patched (backup: $(basename "$backup"))"
                 patched_count=$((patched_count + 1))
             else
@@ -214,11 +239,15 @@ echo "  Errors:  $error_count"
 echo
 
 if [[ $patched_count -gt 0 ]]; then
-    echo "✅ Progressive updates enabled!"
+    echo "✅ $SUCCESS_LABEL!"
     echo
     echo "Next steps:"
     echo "  1. Restart OpenClaw: openclaw gateway restart (or sudo systemctl restart openclaw)"
-    echo "  2. Test with multi-step task to verify progress updates are sent incrementally"
+    if [[ "$MODE" == "disable" ]]; then
+        echo "  2. Test long tasks to verify replies arrive as final/full messages"
+    else
+        echo "  2. Test multi-step task to verify progress updates are sent incrementally"
+    fi
     echo "  3. Remember to send /reset to reload system prompt after workspace changes"
     exit 0
 elif [[ $skipped_count -gt 0 && $error_count -eq 0 ]]; then
