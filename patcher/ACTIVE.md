@@ -7,21 +7,21 @@
 ## 🎯 One-Liner Deploy (Most Common)
 
 ```bash
-~/.openclaw/patcher/openclaw-patcher.sh
+~/.openclaw/patcher/patcher
 ```
 
 Mode variants:
 ```bash
 # Progressive on (default)
-~/.openclaw/patcher/openclaw-patcher.sh --progressive
+~/.openclaw/patcher/patcher --progressive
 
 # Progressive off (final-only replies)
-~/.openclaw/patcher/openclaw-patcher.sh --no-progressive
+~/.openclaw/patcher/patcher --no-progressive
 ```
 
 **Status all patchers:**
 ```bash
-~/.openclaw/patcher/openclaw-patcher.sh --status
+~/.openclaw/patcher/patcher --status
 ```
 
 ---
@@ -30,28 +30,24 @@ Mode variants:
 
 ### 1. Check Status
 ```bash
-~/.openclaw/patcher/openclaw-patcher.sh --status
+~/.openclaw/patcher/patcher --status
 ```
 
 ### 2. Apply Multi-Bubble Patch
 ```bash
-# Default: WhatsApp + Telegram
-python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict
-
-# Custom single channel
-python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --channels whatsapp
+# Use entrypoint (mandatory)
+~/.openclaw/patcher/patcher --force-multibubble
 ```
 
 ### 3. Apply Progressive Updates Patch
 ```bash
 # Prefer orchestrator mode toggle
-~/.openclaw/patcher/openclaw-patcher.sh --progressive
+~/.openclaw/patcher/patcher --progressive
 
 # or disable progressive explicitly
-~/.openclaw/patcher/openclaw-patcher.sh --no-progressive
+~/.openclaw/patcher/patcher --no-progressive
 
-# low-level script (manual)
-~/.openclaw/patcher/apply-progressive.sh --enable
+# do not run module scripts directly
 ```
 
 ### 4. Restart Gateway
@@ -66,7 +62,7 @@ sudo systemctl restart openclaw
 ### 5. Verify
 ```bash
 # Check patch status
-~/.openclaw/patcher/openclaw-patcher.sh --status
+~/.openclaw/patcher/patcher --status
 
 # Check gateway running
 pgrep -fl openclaw
@@ -94,8 +90,8 @@ openclaw agent --channel whatsapp --to +6289669848875 \
 |------|---------|
 | `README.md` | Complete guide with examples |
 | `ACTIVE.md` | This file (quick reference) |
-| `../patcher/apply-multibubble-patch.py` | Canonical multi-bubble patch script |
-| `../patcher/apply-progressive.sh` | Canonical progressive updates script |
+| `../patcher/patcher` | Single orchestrator entrypoint |
+| `../patcher/modules/` | Internal patch modules |
 | `docs/TESTING_GUIDE.md` | Testing methodology (both patches) |
 | `docs/DEPLOYMENT_CHECKLIST.md` | VPS deployment guide (both patches) |
 | `docs/LOCAL_TEST_RESULTS.md` | Latest test results (2026-03-07) |
@@ -107,9 +103,9 @@ openclaw agent --channel whatsapp --to +6289669848875 \
 ### Update After OpenClaw Upgrade
 ```bash
 npm update -g openclaw
-~/.openclaw/patcher/openclaw-patcher.sh --force-multibubble
+~/.openclaw/patcher/patcher --force-multibubble
 # keep progressive enabled explicitly
-~/.openclaw/patcher/openclaw-patcher.sh --progressive
+~/.openclaw/patcher/patcher --progressive
 ```
 
 ### Rollback Patches
@@ -126,7 +122,7 @@ openclaw gateway restart
 
 ### Force Re-patch
 ```bash
-~/.openclaw/patcher/openclaw-patcher.sh --force-multibubble
+~/.openclaw/patcher/patcher --force-multibubble
 ```
 
 ---

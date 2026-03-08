@@ -4,27 +4,29 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-MULTIBUBBLE_SCRIPT="$SCRIPT_DIR/apply-multibubble-patch.py"
-PROGRESSIVE_SCRIPT="$SCRIPT_DIR/apply-progressive.sh"
-TAIL_GUARD_SCRIPT="$SCRIPT_DIR/apply-wa-progress-tail-guard.py"
-OUTBOUND_DEDUPE_SCRIPT="$SCRIPT_DIR/apply-wa-outbound-dedupe.py"
-RESET_PROMPT_SCRIPT="$SCRIPT_DIR/apply-wa-reset-prompt.py"
+MULTIBUBBLE_SCRIPT="$SCRIPT_DIR/modules/apply-multibubble-patch.py"
+PROGRESSIVE_SCRIPT="$SCRIPT_DIR/modules/apply-progressive.sh"
+TAIL_GUARD_SCRIPT="$SCRIPT_DIR/modules/apply-wa-progress-tail-guard.py"
+OUTBOUND_DEDUPE_SCRIPT="$SCRIPT_DIR/modules/apply-wa-outbound-dedupe.py"
+RESET_PROMPT_SCRIPT="$SCRIPT_DIR/modules/apply-wa-reset-prompt.py"
 
 MODE="apply"
 RESTART_GATEWAY=1
 FORCE_MULTIBUBBLE=0
+STRICT_MULTIBUBBLE=0
 PROGRESSIVE_MODE="enable"
 
 usage() {
   cat <<'EOF'
 Usage:
-  openclaw-patcher.sh [--status] [--no-restart] [--force-multibubble]
+  patcher [--status] [--no-restart] [--force-multibubble] [--strict-multibubble]
                       [--progressive|--no-progressive]
 
 Options:
   --status             Show status only, do not apply patches
   --no-restart         Skip gateway restart (apply mode only)
   --force-multibubble  Add --force to multi-bubble patcher
+  --strict-multibubble Enable strict syntax-check mode for multi-bubble patching
   --progressive        Enable progressive mode (default)
   --no-progressive     Disable progressive mode (final-only replies)
   -h, --help           Show this help
@@ -51,6 +53,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --force-multibubble)
       FORCE_MULTIBUBBLE=1
+      shift
+      ;;
+    --strict-multibubble)
+      STRICT_MULTIBUBBLE=1
       shift
       ;;
     --progressive)
@@ -112,7 +118,10 @@ if [[ "$MODE" == "status" ]]; then
   exit 0
 fi
 
-MULTIBUBBLE_ARGS=(--strict --channels whatsapp,telegram)
+MULTIBUBBLE_ARGS=(--channels whatsapp,telegram)
+if [[ "$STRICT_MULTIBUBBLE" -eq 1 ]]; then
+  MULTIBUBBLE_ARGS+=(--strict)
+fi
 if [[ "$FORCE_MULTIBUBBLE" -eq 1 ]]; then
   MULTIBUBBLE_ARGS+=(--force)
 fi
@@ -148,7 +157,15 @@ python3 "$RESET_PROMPT_SCRIPT"
 if [[ "$RESTART_GATEWAY" -eq 1 ]]; then
   echo
   echo "== Step 6/6: Restart gateway =="
-  openclaw gateway restart
+  if command -v openclaw >/dev/null 2>&1; then
+    openclaw gateway restart
+  elif [[ -x "$HOME/.npm-global/bin/openclaw" ]]; then
+    "$HOME/.npm-global/bin/openclaw" gateway restart
+  elif command -v systemctl >/dev/null 2>&1; then
+    systemctl restart openclaw-gateway.service
+  else
+    echo "Warning: could not find openclaw binary for gateway restart" >&2
+  fi
 else
   echo
   echo "Skipped gateway restart (--no-restart)."

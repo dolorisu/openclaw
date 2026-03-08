@@ -24,14 +24,17 @@ Designed for seamless sync between deployments (VPS ↔ local).
 
 ## Runtime patching
 ```bash
-# Recommended: orchestrated sequence
-~/.openclaw/patcher/openclaw-patcher.sh --status
-~/.openclaw/patcher/openclaw-patcher.sh
+# After openclaw update, patch state is reset. Re-apply via orchestrator.
+~/.openclaw/patcher/patcher --status
+~/.openclaw/patcher/patcher --force-multibubble --no-progressive
+~/.openclaw/patcher/patcher --status
 
-# Direct multi-bubble patcher
-python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --channels whatsapp,telegram
+# Internal module (debug only; prefer orchestrator)
+python3 ~/.openclaw/patcher/modules/apply-multibubble-patch.py --strict --channels whatsapp,telegram
 openclaw gateway restart
 ```
+
+Recommended daily mode: `--no-progressive` for WhatsApp stability.
 
 ## Quality Gate (handoff-safe)
 Use this gate before handing tasks to another AI agent.
@@ -89,7 +92,7 @@ Copy-paste template is available at `HANDOFF_TEMPLATE.md`.
 
 2. **Apply runtime patches:**
    ```bash
-   ~/.openclaw/patcher/openclaw-patcher.sh
+   ~/.openclaw/patcher/patcher
    ```
 
 3. **Configure OpenClaw:**

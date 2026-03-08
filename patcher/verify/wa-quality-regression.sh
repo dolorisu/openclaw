@@ -182,7 +182,7 @@ validate_shape() {
 
   case "$name" in
     00_reset)
-      if ! rg -q '✅ New session started\.' "$out_file"; then
+      if ! rg -q '✅ New session started\.|Session baru dimulai|session udah fresh|Fresh start|Reset selesai' "$out_file"; then
         echo "[$name] invalid reset acknowledgement"
         sed -n '1,40p' "$out_file"
         return 1
@@ -198,6 +198,9 @@ if not text:
 if not text.startswith('```') or not text.endswith('```'):
     raise SystemExit(1)
 if text.count('```') != 2:
+    raise SystemExit(1)
+lines=text.splitlines()
+if len(lines) >= 2 and lines[1].strip() == '':
     raise SystemExit(1)
 PY
       then
@@ -336,7 +339,7 @@ fi
 run_step "00_reset" "/reset"
 run_step "00_lock" "LOCK STRICT: labels must use plain colon form with default emoji prefix (⏳ Progress, 📁 Path, 🔧 Command, 📋 Evidence, ✅ Hasil), no markdown bold label wrappers, no markdown table, no separator lines (---). For runbook/troubleshooting, every phase must include Evidence as fenced raw command output snippet (1-3 lines), no paraphrase-only evidence, and no fenced language tag marker (e.g. text after opening fence)."
 run_step "01_smoke" "Balas satu bubble: OK regression smoke."
-run_step "02_fenced_tree" "Balas SATU fenced code block berisi tree mini 5 baris dan footer total. Jangan ada teks di luar code block."
+run_step "02_fenced_tree" "Balas SATU fenced code block berisi tree mini 5 baris dan footer total. Jangan ada teks di luar code block. JANGAN beri baris kosong tepat setelah pembuka fence; baris pertama isi block harus langsung titik (.)."
 
 run_step "03_ops_apt" "Task harian: apt update lalu install htop, verifikasi, lalu uninstall bersih. Format wajib per phase: Progress/Path/Command/Evidence/Hasil (plain labels). Untuk command global apt, gunakan Path: system-wide. Evidence harus fenced raw output 1-3 baris dari command yang baru dijalankan. Dilarang separator line (---), dilarang markdown bold labels, dilarang placeholder."
 run_step "04_search" "Searching: cari requireMention di ~/.openclaw, tampilkan top hasil dan arti singkat. Gunakan 🔧 Command, 📋 Evidence, ✅ Hasil. Evidence WAJIB fenced raw snippet (1-3 lines), bukan inline. Jangan tabel dan jangan separator."

@@ -100,13 +100,32 @@ fi
 echo "OpenClaw dist: $DIST_DIR"
 echo
 
-# Target files
-FILES=(
-    "$DIST_DIR/channel-web-k1Tb8tGz.js"
-    "$DIST_DIR/channel-web-sl83aqDv.js"
-    "$DIST_DIR/web-pFdwPQ7y.js"
-    "$DIST_DIR/web-CSq0l9pG.js"
-)
+# Target files (version-agnostic discovery)
+discover_target_files() {
+    local files=()
+    shopt -s nullglob
+    for f in "$DIST_DIR"/channel-web-*.js "$DIST_DIR"/web-*.js; do
+        [[ -f "$f" ]] || continue
+        if grep -q "disableBlockStreaming:\s*\(true\|false\)," "$f" 2>/dev/null; then
+            files+=("$f")
+        fi
+    done
+    if [[ -d "$DIST_DIR/plugin-sdk" ]]; then
+        for f in "$DIST_DIR"/plugin-sdk/channel-web-*.js "$DIST_DIR"/plugin-sdk/web-*.js; do
+            [[ -f "$f" ]] || continue
+            if grep -q "disableBlockStreaming:\s*\(true\|false\)," "$f" 2>/dev/null; then
+                files+=("$f")
+            fi
+        done
+    fi
+    shopt -u nullglob
+    printf "%s\n" "${files[@]}"
+}
+
+FILES=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] && FILES+=("$line")
+done < <(discover_target_files)
 
 # Check if already patched
 check_patch_status() {
@@ -127,14 +146,14 @@ check_patch_status() {
 if [[ "${1:-}" == "--status" ]]; then
     echo "Progressive updates patch status:"
     echo
+    if [[ ${#FILES[@]} -eq 0 ]]; then
+        echo "  ⚠️  no version-matching files with disableBlockStreaming token found"
+        exit 0
+    fi
     for file in "${FILES[@]}"; do
-        if [[ -f "$file" ]]; then
-            status=$(check_patch_status "$file" || true)
-            basename=$(basename "$file")
-            echo "  $basename: $status"
-        else
-            echo "  $(basename "$file"): ⚠️  not found"
-        fi
+        status=$(check_patch_status "$file" || true)
+        basename=$(basename "$file")
+        echo "  $basename: $status"
     done
     exit 0
 fi
@@ -162,6 +181,12 @@ fi
 echo "Applying patch to $ACTION_LABEL..."
 echo "Detected sed mode: $SED_INPLACE"
 echo
+
+if [[ ${#FILES[@]} -eq 0 ]]; then
+    echo "⚠️  No target files with disableBlockStreaming token found in: $DIST_DIR"
+    echo "   (bundle may have changed or progressive mode unsupported in this build)"
+    exit 0
+fi
 
 patched_count=0
 skipped_count=0

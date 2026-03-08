@@ -9,21 +9,21 @@ Multi-bubble responses and progressive updates patches for better UX.
 **Apply both patches (WhatsApp + Telegram):**
 ```bash
 # Recommended: run orchestrator (correct sequence + restart)
-~/.openclaw/patcher/openclaw-patcher.sh
+~/.openclaw/patcher/patcher
 
 # Explicit mode
-~/.openclaw/patcher/openclaw-patcher.sh --progressive
-~/.openclaw/patcher/openclaw-patcher.sh --no-progressive
+~/.openclaw/patcher/patcher --progressive
+~/.openclaw/patcher/patcher --no-progressive
 ```
 
 **Check status:**
 ```bash
-~/.openclaw/patcher/openclaw-patcher.sh --status
+~/.openclaw/patcher/patcher --status
 ```
 
 See **[ACTIVE.md](ACTIVE.md)** for quick reference.
 
-For sequence-safe auto-runner, use `~/.openclaw/patcher/openclaw-patcher.sh`.
+For sequence-safe auto-runner, use `~/.openclaw/patcher/patcher`.
 
 ---
 
@@ -36,7 +36,7 @@ patcher/
 ├── README.md                          ← You are here
 ├── ACTIVE.md                          ← Quick command reference
 │
-├── (scripts moved to ../patcher/)
+├── modules/                           ← Internal scripts (do not run directly)
 │
 ├── docs/                              ← Documentation
 │   ├── TESTING_GUIDE.md               ← Testing methodology (both patches)
@@ -85,7 +85,7 @@ patcher/
 
 ## 🔧 Patch Details
 
-### 1. Multi-Bubble Patch (`~/.openclaw/patcher/apply-multibubble-patch.py`)
+### 1. Multi-Bubble Patch (`~/.openclaw/patcher/modules/apply-multibubble-patch.py`)
 
 **What it does:** Splits conversational responses on `\n\n` (double newline) into separate message bubbles.
 
@@ -110,7 +110,7 @@ python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict
 python3 ~/.openclaw/patcher/apply-multibubble-patch.py --strict --channels whatsapp
 ```
 
-### 2. Progressive Updates Patch (`~/.openclaw/patcher/apply-progressive.sh`)
+### 2. Progressive Updates Patch (`~/.openclaw/patcher/modules/apply-progressive.sh`)
 
 **What it does:** Enables block streaming to send interim text updates during long tasks instead of batching at the end.
 
@@ -214,15 +214,15 @@ Both scripts work on:
 ```bash
 cd ~/.openclaw
 git pull
-patcher/openclaw-patcher.sh --status
+patcher/patcher --status
 ```
 
 **Deploy:**
 ```bash
-patcher/openclaw-patcher.sh --progressive
+patcher/patcher --progressive
 
 # or final-only mode
-patcher/openclaw-patcher.sh --no-progressive
+patcher/patcher --no-progressive
 ```
 
 **Verify:**
@@ -241,9 +241,8 @@ patcher/openclaw-patcher.sh --no-progressive
 # Check OpenClaw version
 openclaw --version
 
-# Re-apply patches
-python3 apply-multibubble-patch.py --strict --force --channels whatsapp,telegram
-~/.openclaw/patcher/apply-progressive.sh
+# Re-apply patches (orchestrator only)
+~/.openclaw/patcher/patcher --force-multibubble --progressive
 ```
 
 **Multi-bubble not working:**

@@ -52,10 +52,10 @@ ls -lh patcher/
 ```
 
 **Expected files:**
-- `openclaw-patcher.sh`
-- `apply-multibubble-patch.py`
-- `apply-progressive.sh`
-- `apply-wa-progress-tail-guard.py`
+- `patcher`
+- `modules/apply-multibubble-patch.py`
+- `modules/apply-progressive.sh`
+- `modules/apply-wa-progress-tail-guard.py`
 - `docs/TESTING_GUIDE.md`
 - `docs/LOCAL_TEST_RESULTS.md`
 - `PROGRESSIVE_UPDATES.md`
@@ -66,12 +66,12 @@ ls -lh patcher/
 
 ```bash
 # Recommended: one status command for full stack
-~/.openclaw/patcher/openclaw-patcher.sh --status
+~/.openclaw/patcher/patcher --status
 
-# Optional low-level checks
-python3 ~/.openclaw/patcher/apply-multibubble-patch.py --status
-~/.openclaw/patcher/apply-progressive.sh --status
-python3 ~/.openclaw/patcher/apply-wa-progress-tail-guard.py --status
+# Optional low-level checks (internal modules; normally skip)
+python3 ~/.openclaw/patcher/modules/apply-multibubble-patch.py --status
+~/.openclaw/patcher/modules/apply-progressive.sh --status
+python3 ~/.openclaw/patcher/modules/apply-wa-progress-tail-guard.py --status
 ```
 
 **Possible outcomes:**
@@ -83,7 +83,7 @@ python3 ~/.openclaw/patcher/apply-wa-progress-tail-guard.py --status
 
 ```bash
 # Recommended: sequence-safe orchestrator
-~/.openclaw/patcher/openclaw-patcher.sh --progressive
+~/.openclaw/patcher/patcher --progressive
 
 # Optional: low-level verify
 python3 ~/.openclaw/patcher/apply-multibubble-patch.py --status
@@ -102,10 +102,10 @@ Summary:
 
 ```bash
 # Orchestrator mode toggle (recommended)
-~/.openclaw/patcher/openclaw-patcher.sh --progressive
+~/.openclaw/patcher/patcher --progressive
 
 # Disable progressive when needed
-~/.openclaw/patcher/openclaw-patcher.sh --no-progressive
+~/.openclaw/patcher/patcher --no-progressive
 
 # Verify
 ~/.openclaw/patcher/apply-progressive.sh --status

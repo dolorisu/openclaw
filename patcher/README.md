@@ -10,16 +10,19 @@ Discovery order prioritizes `npm root -g` and then falls back to binary-path and
 
 ## Scripts
 
-- `openclaw-patcher.sh` (main gateway)
-  - Primary `.sh` entrypoint for day-to-day use.
+- `patcher` (single entrypoint, mandatory)
+  - The only operator command.
   - Orchestrates sequence: multi-bubble -> progressive mode -> WA tail guard -> WA outbound dedupe -> WA reset prompt -> restart.
 
-- `apply-multibubble-patch.py`
-  - Canonical multi-bubble patcher (WhatsApp + Telegram paths).
+- `modules/` (internal)
+  - Contains implementation scripts used by `patcher`.
+  - Do not run module scripts directly during normal operations.
 
-- `apply-progressive.sh`
-  - Canonical progressive-updates patcher.
-  - Supports `--enable`, `--disable`, and `--status`.
+- `modules/apply-multibubble-patch.py`
+  - Canonical multi-bubble patch implementation.
+
+- `modules/apply-progressive.sh`
+  - Canonical progressive-updates patch implementation.
 
 - `verify-multibubble.sh`
   - Sends real test prompts to WhatsApp and Telegram.
@@ -33,7 +36,7 @@ Discovery order prioritizes `npm root -g` and then falls back to binary-path and
   - Supports `--complex` for an additional heavy scenario.
   - Use `--no-strict-format` only for diagnostics.
 
-- `apply-wa-progress-tail-guard.py`
+- `modules/apply-wa-progress-tail-guard.py`
   - Prevents WhatsApp progress streaming from splitting short trailing sentence fragments into a separate bubble.
   - Skips short non-final preview updates to avoid transient duplicate/typing-only UX.
   - Keeps multi-bubble (`\n\n`) behavior unchanged.
@@ -41,14 +44,22 @@ Discovery order prioritizes `npm root -g` and then falls back to binary-path and
 ## Usage
 
 ```bash
-~/.openclaw/patcher/openclaw-patcher.sh --status
-~/.openclaw/patcher/openclaw-patcher.sh
+# 0) After `openclaw update`, patch state is reset. Re-apply immediately.
 
-# optional flags
-~/.openclaw/patcher/openclaw-patcher.sh --force-multibubble
-~/.openclaw/patcher/openclaw-patcher.sh --no-restart
-~/.openclaw/patcher/openclaw-patcher.sh --progressive
-~/.openclaw/patcher/openclaw-patcher.sh --no-progressive
+# 1) Check current status
+~/.openclaw/patcher/patcher --status
+
+# 2) Recommended daily apply (stable WhatsApp delivery)
+~/.openclaw/patcher/patcher --force-multibubble --no-progressive
+
+# 3) Optional modes
+~/.openclaw/patcher/patcher --force-multibubble
+~/.openclaw/patcher/patcher --no-restart
+~/.openclaw/patcher/patcher --progressive
+~/.openclaw/patcher/patcher --no-progressive
+
+# 4) Verify patch state
+~/.openclaw/patcher/patcher --status
 
 # real end-to-end verification (sends test messages)
 ~/.openclaw/patcher/verify-multibubble.sh --wa-to +6289669848875 --tg-to @rifuki
@@ -57,12 +68,15 @@ Discovery order prioritizes `npm root -g` and then falls back to binary-path and
 bash ~/.openclaw/patcher/verify/wa-quality-regression.sh --to +6289669848875 --timeout 300
 bash ~/.openclaw/patcher/verify/wa-quality-regression.sh --to +6289669848875 --timeout 300 --complex
 
-# direct tail-guard only
-python3 ~/.openclaw/patcher/apply-wa-progress-tail-guard.py --status
-python3 ~/.openclaw/patcher/apply-wa-progress-tail-guard.py --strict
-openclaw gateway restart
+# 5) If changing runtime behavior, reset chat session once
+openclaw agent --to 120363425302186820@g.us --message "/reset" --deliver --timeout 240
 ```
 
-Use `~/.openclaw/patcher/` as the only script location and prefer `openclaw-patcher.sh` as the default entrypoint.
+### Recommended defaults
+- Daily/stable mode (recommended): `--no-progressive`
+- Use `--progressive` only when you explicitly need live streaming previews and can tolerate occasional WhatsApp delivery flakiness.
+- Always use the orchestrator entrypoint (`patcher`), not direct module scripts.
+
+Use `~/.openclaw/patcher/` as the only script location and prefer `patcher` as the default entrypoint.
 
 Extended docs moved from `patches/` are available in `~/.openclaw/patcher/PATCHES.md`, `~/.openclaw/patcher/docs/`, and `~/.openclaw/patcher/archive/`.

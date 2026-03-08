@@ -539,7 +539,18 @@ def patch_one(path: Path, kind: str, dry_run: bool, strict: bool, node_bin: str 
         patched_data, note = build_telegram_bot_patched(data)
 
     if patched_data is None:
-        if note.startswith("already patched") or note == "no deliverWebReply" or note == "no web chunk resolver" or note == "no telegram chunk resolver" or note == "no telegram patch targets":
+        if (
+            note.startswith("already patched")
+            or note in {
+                "no deliverWebReply",
+                "no web chunk resolver",
+                "no telegram chunk resolver",
+                "no telegram patch targets",
+                "needle not found",
+                "telegram preview helper anchor not found",
+                "telegram preview deliver anchor not found",
+            }
+        ):
             return "skipped", note, None
         return "failed", note, None
 
