@@ -40,9 +40,9 @@ Cross-channel delivery policy (WhatsApp, Telegram, Discord, and others).
 - If multiple phase blocks are sent in one reply, each phase block must repeat its own `Path` line (no shared `Path` header).
 - `Evidence:` lines must be verbatim from the latest tool output (except optional truncation with `...`).
 - WhatsApp default text style: plain text labels with colon (`Progress:`, `Path:`, `Command:`, `Evidence:`, `Hasil:`).
-- Avoid markdown emphasis markers (`**bold**`, `__underline__`) unless user explicitly asks markdown styling.
-- Strict default: do not use markdown heading-style emphasis (`**Title:**`) for normal owner replies.
-- Owner default WhatsApp ops/runbook mode: markdown bold wrappers are forbidden (`**text**`), use plain labels or emoji-prefix labels only.
+- Markdown bold (`**text**`) is allowed for short section headings when it improves readability.
+- Keep emphasis lightweight; avoid overusing bold on many lines.
+- Required ops labels must stay plain colon form (`Progress:`, `Path:`, `Command:`, `Evidence:`, `Hasil:`), not bold wrappers.
 - Emoji readability mode is allowed when owner prefers it.
 - Preferred semantic emoji mapping when enabled:
   - `⏳ Progress:`
@@ -96,19 +96,21 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
 - Avoid markdown tables by default in WhatsApp replies; prefer plain bullets or monospace blocks.
 - For daily ops/runbook replies, never use separator-only lines and never use markdown tables unless user explicitly asks table format.
 - For owner default mode, treat table/separator ban as strict even in concise replies.
-- For owner default mode, treat markdown-bold ban as strict in concise replies too.
+- For owner default mode, bold is optional for section headings; do not bold-wrap required phase labels.
 - Prefer this compact proof style:
   - `Command:` one line,
   - fenced output snippet,
   - `Arti:` one short interpretation line.
-- `Path:` is required in every daily-ops phase block; use `/` if no tighter path is available.
+- `Path:` is required in every daily-ops phase block.
+- For global/system checks, prefer `Path: system-wide`.
+- For directory/file scoped checks, use concrete path; use `/` only as fallback.
 - For daily-ops/search phases, prefer fenced raw snippets for `Evidence:` over prose summaries.
 - For troubleshooting/runbook phases, require fenced raw snippets for `Evidence:`.
 - For tool readiness checks, run `command -v <tool> || /usr/sbin/<tool>` first and only then report version/status.
 - For VPS checks that depend on shell profile/API keys, run through login shell (`zsh -lic`) before claiming auth/tool readiness.
-- Keep label format consistent with colon form, not heading form (use `Progress:` not `**Progress**`).
+- Keep required phase labels in colon form, not heading wrappers (use `Progress:` not `**Progress:**`).
 - Keep labels in colon form; optional emoji prefix is allowed when readability mode is desired.
-- Never wrap section labels with markdown emphasis (for example `**Fungsi:**`, `**Poin penting:**`).
+- Do not markdown-wrap required template labels (for example keep `Fungsi:` and `Poin penting:` plain in file-open template).
 - Forbidden in default owner ops replies:
   - standalone separator lines (`---`),
   - markdown table blocks,
@@ -133,6 +135,16 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
   - fenced monospace tree/list where key lines use `name <- label`
   - optional closing line: `Mau saya buka salah satu?`
 - Treat this template as mandatory default for folder/directory requests unless user asks another format.
+
+## Empty data presentation
+- When a status/list query returns zero items, prefer concise summary format (Option A), not table layout.
+- Do not emit separator lines (`---`) for empty datasets.
+- Empty-state line should be explicit and natural Bahasa Indonesia.
+- Example empty-state shape:
+  - `Status: ✅ Service aktif`
+  - `Containers: 0 aktif`
+  - `(tidak ada container yang berjalan)`
+- Apply this pattern to docker/ps/search/service checks when result set is empty.
 
 ## File-open style
 - When user asks to open/read a file, provide:

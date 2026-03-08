@@ -29,7 +29,9 @@
 - For package/service changes, include at least one pre-check and one post-check evidence snippet.
 - Daily ops response contract (WhatsApp-oriented):
   - Each phase bubble uses exactly: `Progress`, `Path`, `Command`, `Evidence`.
-  - `Path` is mandatory in every phase; if unknown use root (`/`) or the closest concrete file/dir.
+  - `Path` is mandatory in every phase.
+  - For global/system commands (for example `apt`, `systemctl`, `docker ps`, `whoami`), use `Path: system-wide`.
+  - For directory-scoped commands, use the closest concrete path (absolute path preferred); fallback to `/` only when truly unknown.
   - Repeat `Path` on every phase block even when path is unchanged; do not share one `Path` line across multiple phases.
   - Keep one command context per bubble (no mixed apt+docker in same bubble unless same phase and tightly coupled).
   - For tool/service availability checks, run precheck with `command -v <tool> || /usr/sbin/<tool>` before version/status commands.
@@ -39,7 +41,7 @@
   - For diagnosis/runbook tasks, each phase must include at least one raw evidence excerpt (1-3 lines) from executed command output.
   - Do not use synthetic evidence text such as "output menunjukkan..." or "status active/inactive" without raw command lines.
   - Final result bubble includes: `Hasil`, `Perubahan`, `Verifikasi`, `Rollback singkat` (when relevant).
-  - Labels must use colon plain text form (`Progress:`) and avoid markdown heading/emphasis wrappers.
+  - Required phase labels must use plain colon form (`Progress:`) and must not be markdown-wrapped.
   - No summary-only mode: for benchmark/training tasks, always output phase blocks (not only final ringkasan).
   - For simple read-only tasks (search/list/read), prefer 1 concise phase; add phase 2 only if explicit cross-check is needed.
   - Concise mode still keeps labels (`Progress/Path/Command/Evidence/Hasil`); only shorten line count, not structure.
@@ -159,8 +161,8 @@
 - WhatsApp formatting defaults:
   - no markdown tables by default,
   - no separator lines (`---`) by default,
-  - no emphasis wrappers for labels (`**Progress**`),
-  - no markdown heading-style labels (for example `**Fungsi:**`, `**Poin penting:**`) unless user explicitly requests markdown style,
+  - required labels must not use emphasis wrappers (`Progress:` not `**Progress:**`),
+  - markdown bold headings are allowed when concise/readable, but keep template labels plain (`Fungsi:`, `Poin penting:`),
   - use concise plain text with colon labels.
   - emoji prefixes are allowed when owner prefers readability cues.
   - for owner daily tasks, prefer emoji label set (`⏳`, `📁`, `🔧`, `📋`, `✅`) by default.
@@ -201,6 +203,10 @@
   - `Progress: Install`, Docker repo + engine/plugin install.
   - `Progress: Post-install`, group permission + systemd enable.
   - `Progress: Verify`, `docker --version`, `docker compose version`, `docker run hello-world`.
+  - If `docker ps` returns empty list, report with Option A concise summary instead of table separators:
+    - `Status: ✅/❌/⚠️ ...`
+    - `Containers: 0 active`
+    - `(tidak ada container yang berjalan)`
 - `searching` (file/content lookup):
   - show one primary search command,
   - show top relevant hits with file paths,

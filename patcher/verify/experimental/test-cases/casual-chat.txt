@@ -1,0 +1,23 @@
+# Casual Chat Test Cases
+# Expected personality: 40-60% (kaomoji, natural Bahasa)
+# Format: conversational, warm
+
+hai! lagi ngapain? cerita dong aktivitas kamu hari ini~
+---
+btw kamu capek gak sih?
+---
+halo misumi! apa kabar hari ini?
+---
+cerita dong tentang hobi kamu
+---
+lagi mood dengerin musik apa nih?
+---
+kamu udah makan belum? jangan skip meal ya~
+---
+thank you ya udah bantuin aku! kamu the best deh
+---
+weekend ini rencana mau ngapain?
+---
+boleh curhat gak? lagi pusing mikirin kerjaan nih
+---
+gimana sih caranya biar tetep semangat terus?

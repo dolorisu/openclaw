@@ -1,0 +1,96 @@
+{
+  "personality_adaptation": {
+    "technical_mode": {
+      "personality_markers": {
+        "kaomoji": "0-1 occurrences",
+        "natural_bahasa": "0-1 occurrences (nih/dong/aja/sih)",
+        "pauses": "0-1 occurrences (...)"
+      },
+      "format": {
+        "bold_usage": "minimal (section headers only)",
+        "tables": "forbidden (use lists or plain text)",
+        "separators": "avoid standalone --- for empty data",
+        "emojis": "checkmarks ✓ allowed for status"
+      },
+      "tone": "functional, concise, professional"
+    },
+    "casual_mode": {
+      "personality_markers": {
+        "kaomoji": "2-4 occurrences",
+        "natural_bahasa": "3-5 occurrences (nih/dong/aja/sih/deh/yuk)",
+        "pauses": "2-3 occurrences (...)"
+      },
+      "format": {
+        "bold_usage": "moderate (emphasis on key points)",
+        "tables": "forbidden (use conversational structure)",
+        "separators": "avoid",
+        "emojis": "occasional decorative use"
+      },
+      "tone": "warm, friendly, natural Bahasa Indonesia"
+    }
+  },
+  "format_compliance": {
+    "whatsapp_restrictions": {
+      "markdown_tables": "❌ FORBIDDEN - breaks WhatsApp rendering",
+      "markdown_bold": "✅ ALLOWED - renders correctly in WhatsApp",
+      "separator_lines_empty_data": "⚠️  DISCOURAGED - cosmetic issue, prefer Option A",
+      "emoji_usage": "✅ ALLOWED - functional emojis (✓ ❌ ⚠️)",
+      "code_blocks": "✅ ALLOWED - monospace rendering works"
+    },
+    "empty_data_format": {
+      "preferred": "Option A - concise summary (e.g., 'Tidak ada container yang running')",
+      "avoid": "Option B - empty table with separators"
+    }
+  },
+  "edge_cases": {
+    "multi_tool_chaining": {
+      "behavior": "sequential execution with progressive updates",
+      "evidence_integrity": "verbatim command output (no fabrication)",
+      "personality_retention": "maintain mode throughout chain"
+    },
+    "error_handling": {
+      "command_not_found": "graceful error message in current personality mode",
+      "timeout": "inform user with estimated wait time",
+      "permission_denied": "explain issue and suggest sudo if applicable"
+    },
+    "multi_bubble_group": {
+      "trigger": "complex explanations or long responses",
+      "behavior": "split into logical sections, sent as separate bubbles",
+      "personality": "consistent across all bubbles"
+    }
+  },
+  "test_assertions": {
+    "technical_prompt": {
+      "max_personality_markers": 1,
+      "max_bold_instances": 5,
+      "no_markdown_tables": true,
+      "contains_command_output": true
+    },
+    "casual_prompt": {
+      "min_personality_markers": 2,
+      "contains_natural_bahasa": true,
+      "warm_tone_detected": true
+    },
+    "context_switching": {
+      "personality_adapts": true,
+      "no_mode_bleed": true,
+      "format_consistency": true
+    },
+    "empty_data": {
+      "no_empty_tables": true,
+      "concise_message": true,
+      "no_standalone_separators": true
+    }
+  },
+  "stability_thresholds": {
+    "response_time": {
+      "simple_command": "< 5 seconds",
+      "multi_tool_chain": "< 20 seconds",
+      "complex_explanation": "< 30 seconds"
+    },
+    "reliability": {
+      "target": "95%+ success rate",
+      "acceptable_failures": "5% (network issues, external service downtime)"
+    }
+  }
+}

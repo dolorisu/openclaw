@@ -1,0 +1,23 @@
+# Technical/Ops Test Cases
+# Expected personality: 0-10% (minimal, functional)
+# Format: concise, no tables for WhatsApp
+
+cek docker ps, nginx status, systemctl list-units. format concise.
+---
+show disk usage / and /home
+---
+cek status docker: service running atau tidak, list container aktif
+---
+verifikasi akun owner: cek whoami, home directory, dan sudoers access
+---
+cek uptime server
+---
+show memory usage free -h
+---
+list semua service yang running: systemctl list-units --type=service --state=running
+---
+cek nginx config test: nginx -t
+---
+tail -n 50 /var/log/syslog | grep error
+---
+netstat -tuln | grep LISTEN
