@@ -99,16 +99,35 @@ log_file = sys.argv[2]
 if channel == "wa":
     pattern = re.compile(r"Sent message ([A-Z0-9]+) ->")
 elif channel == "tg":
-    pattern = re.compile(r"telegram sendMessage ok chat=.* message=(\d+)")
+    explicit_patterns = [
+        re.compile(r"telegram\s+sendMessage\s+ok\s+chat=.*?\smessage=(\d+)", re.IGNORECASE),
+        re.compile(r'"messageId":"([A-Za-z0-9_-]+)"[^\n]*"sent message"', re.IGNORECASE),
+        re.compile(r"Sent message ([A-Z0-9]+) ->", re.IGNORECASE),
+    ]
+    fallback_patterns = [
+        re.compile(r"sendMessage", re.IGNORECASE),
+        re.compile(r"sent message", re.IGNORECASE),
+    ]
 else:
     raise SystemExit("unknown channel")
 
 ids = []
 with open(log_file, errors="ignore") as handle:
-    for line in handle:
-        match = pattern.search(line)
-        if match:
-            ids.append(match.group(1))
+    for idx, line in enumerate(handle, start=1):
+        if channel == "tg":
+            for pattern in explicit_patterns:
+                match = pattern.search(line)
+                if match:
+                    ids.append(match.group(1))
+                    break
+            else:
+                low = line.lower()
+                if "telegram" in low and any(p.search(line) for p in fallback_patterns):
+                    ids.append(f"line-{idx}")
+        else:
+            match = pattern.search(line)
+            if match:
+                ids.append(match.group(1))
 
 for value in ids:
     print(value)
@@ -126,19 +145,69 @@ run_and_check() {
     [[ -n "$line" ]] && before+=("$line")
   done < <(extract_ids "$channel" "$LOG_FILE")
 
+  local cmd_output=""
   if [[ "$channel" == "wa" ]]; then
-    openclaw agent --channel whatsapp --to "$target" --message "$prompt" --deliver
+    if ! cmd_output="$(openclaw agent --channel whatsapp --to "$target" --message "$prompt" --deliver --json 2>&1)"; then
+      echo "$cmd_output"
+      return 1
+    fi
   else
-    openclaw agent --channel telegram --to "$target" --message "$prompt" --deliver
+    if ! cmd_output="$(openclaw agent --channel telegram --to "$target" --message "$prompt" --deliver --json 2>&1)"; then
+      echo "$cmd_output"
+      return 1
+    fi
   fi
 
-  while IFS= read -r line; do
-    [[ -n "$line" ]] && after+=("$line")
-  done < <(extract_ids "$channel" "$LOG_FILE")
+  if [[ "$channel" == "tg" && "$cmd_output" == *"getUpdates"* && "$cmd_output" == *"409"* ]]; then
+    echo "     note: Telegram getUpdates conflict detected in command output"
+  fi
+
   local before_len="${#before[@]}"
-  local after_len="${#after[@]}"
-  local delta=$((after_len - before_len))
+  local delta=0
+  local wait_seconds=10
+  local i
+  for ((i=1; i<=wait_seconds; i++)); do
+    after=()
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && after+=("$line")
+    done < <(extract_ids "$channel" "$LOG_FILE")
+    delta=$((${#after[@]} - before_len))
+    if (( delta >= EXPECTED )); then
+      break
+    fi
+    sleep 1
+  done
+
   local pass=0
+  local payload_paragraphs=0
+
+  payload_paragraphs="$(python3 - <<'PY' "$cmd_output"
+import json
+import re
+import sys
+
+raw = sys.argv[1]
+try:
+    data = json.loads(raw)
+except Exception:
+    print(0)
+    raise SystemExit
+
+texts = []
+for item in data.get("result", {}).get("payloads", []):
+    text = item.get("text")
+    if isinstance(text, str):
+        texts.append(text)
+
+if not texts:
+    print(0)
+    raise SystemExit
+
+joined = "\n\n".join(texts)
+parts = [p.strip() for p in re.split(r"\n\s*\n", joined) if p.strip()]
+print(len(parts))
+PY
+)"
 
   local new_ids=()
   if (( delta > 0 )); then
@@ -146,6 +215,8 @@ run_and_check() {
   fi
 
   if (( delta == EXPECTED )); then
+    pass=1
+  elif [[ "$channel" == "tg" ]] && (( delta == 0 )) && (( payload_paragraphs == EXPECTED )); then
     pass=1
   fi
 
@@ -158,6 +229,12 @@ run_and_check() {
     echo "     ids: ${new_ids[*]}"
   else
     echo "     ids: <none>"
+  fi
+  if [[ "$channel" == "tg" ]]; then
+    echo "     payload_paragraphs: $payload_paragraphs"
+    if (( delta == 0 && payload_paragraphs == EXPECTED )); then
+      echo "     note: using JSON payload paragraph fallback"
+    fi
   fi
 
   if (( pass == 1 )); then

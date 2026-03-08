@@ -32,6 +32,45 @@ WEB_PATCH_MARKER_C = 'const paragraphParts = rawText.includes("```") || keepAtom
 WEB_PATCH_MARKER_D = 'const textChunks = rawText.includes("```") || keepAtomicProgress ? [markdownToWhatsApp(convertMarkdownTables(rawText, tableMode))] : paragraphParts.flatMap((part) => chunkMarkdownTextWithMode(markdownToWhatsApp(convertMarkdownTables(part, tableMode)), textLimit, chunkMode));'
 TELEGRAM_PATCH_MARKER_OLD = 'const markdownChunks = markdown.includes("\\n\\n") ? markdown.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean) : params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
 TELEGRAM_PATCH_MARKER = 'const markdownChunks = markdown.includes("```") ? [markdown] : markdown.includes("\\n\\n") ? markdown.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean) : params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
+TELEGRAM_PATCH_MARKER_V2 = 'const markdownChunks = markdown.includes("```") ? [markdown] : /\\n\\s*\\n+/.test(markdown) ? markdown.split(/\\n\\s*\\n+/).map((part) => part.trim()).filter(Boolean) : params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
+TELEGRAM_SENDTEXT_SPLIT_MARKER = 'const splitSource = fallbackText.replace(/\\r\\n?/g, "\\n");'
+TELEGRAM_SENDTEXT_SPLIT_BLOCK = """\tconst splitSource = fallbackText.replace(/\\r\\n?/g, "\\n");
+\tif (!opts?.__openclawNoSplit && /\\n\\s*\\n+/.test(splitSource) && !splitSource.includes("```")) {
+\t\tconst parts = splitSource.split(/\\n\\s*\\n+/).map((part) => part.trim()).filter(Boolean);
+\t\tif (parts.length > 1) {
+\t\t\tlet firstMessageId;
+\t\t\tfor (let i = 0; i < parts.length; i += 1) {
+\t\t\t\tconst part = parts[i];
+\t\t\t\tconst messageId = await sendTelegramText(bot, chatId, part, runtime, {
+\t\t\t\t\t...opts,
+\t\t\t\t\tplainText: part,
+\t\t\t\t\t__openclawNoSplit: true,
+\t\t\t\t\treplyToMessageId: i === 0 ? opts?.replyToMessageId : void 0,
+\t\t\t\t\treplyMarkup: i === 0 ? opts?.replyMarkup : void 0
+\t\t\t\t});
+\t\t\t\tif (firstMessageId === void 0) firstMessageId = messageId;
+\t\t\t}
+\t\t\tif (firstMessageId !== void 0) return firstMessageId;
+\t\t}
+\t}
+"""
+
+TELEGRAM_ACTION_SEND_SIG = 'const sendTelegramText = async (rawText, params, fallbackText) => {'
+TELEGRAM_ACTION_SEND_SIG_PATCHED = 'const sendTelegramText = async (rawText, params, fallbackText, allowSplit = true) => {'
+TELEGRAM_ACTION_SPLIT_MARKER = 'const splitSource = (fallbackText ?? rawText).replace(/\\r\\n?/g, "\\n");'
+TELEGRAM_ACTION_SPLIT_BLOCK = """\t\tconst splitSource = (fallbackText ?? rawText).replace(/\\r\\n?/g, "\\n");
+\t\tif (allowSplit && /\\n\\s*\\n+/.test(splitSource) && !splitSource.includes("```")) {
+\t\t\tconst parts = splitSource.split(/\\n\\s*\\n+/).map((part) => part.trim()).filter(Boolean);
+\t\t\tif (parts.length > 1) {
+\t\t\t\tlet firstResult;
+\t\t\t\tfor (const part of parts) {
+\t\t\t\t\tconst result = await sendTelegramText(part, params, part, false);
+\t\t\t\t\tif (firstResult === void 0) firstResult = result;
+\t\t\t\t}
+\t\t\t\tif (firstResult !== void 0) return firstResult;
+\t\t\t}
+\t\t}
+"""
 TELEGRAM_PREVIEW_MARKER = 'const shouldSendTelegramPreviewUpdate = (payload, info) => {'
 TELEGRAM_PREVIEW_GUARD = 'if (!shouldSendTelegramPreviewUpdate(payload, info)) return;'
 
@@ -192,12 +231,13 @@ def backup_path(path: Path) -> Path:
 def build_deliver_patched(data: str, channels: list[str], force: bool = False) -> tuple[str | None, str]:
     # Build channel check: channel === "whatsapp" || channel === "telegram"
     channel_checks = " || ".join(f'channel === "{ch}"' for ch in channels)
-    marker = f'({channel_checks}) && typeof text === "string" && text.includes("\\n\\n") && !text.includes("```")'
+    split_predicate = f'(({channel_checks}) && typeof text === "string" && /\\n\\s*\\n+/.test(text.replace(/\\r\\n?/g, "\\n")) && !text.includes("```"))'
+    marker = split_predicate
     atomic_guard_marker = 'globalThis.__openclawFencePayloadDedupe'
     sendpayload_guard = (
         f'if (handler.sendPayload && effectivePayload.channelData && !(({channel_checks}) && '
         'payloadSummary.mediaUrls.length === 0 && typeof payloadSummary.text === "string" && '
-        'payloadSummary.text.includes("\\n\\n") && !payloadSummary.text.includes("```"))) {'
+        '/\\n\\s*\\n+/.test(payloadSummary.text.replace(/\\r\\n?/g, "\\n")) && !payloadSummary.text.includes("```"))) {'
     )
     
     # Upgrade old split condition that breaks fenced code blocks
@@ -207,6 +247,11 @@ def build_deliver_patched(data: str, channels: list[str], force: bool = False) -
         'payloadSummary.mediaUrls.length === 0 && typeof payloadSummary.text === "string" && '
         'payloadSummary.text.includes("\\n\\n"))) {'
     )
+    old_split_predicates = [
+        f'({channel_checks}) && typeof text === "string" && text.includes("\\n\\n") && !text.includes("```")',
+        f'{channel_checks} && typeof text === "string" && text.includes("\\n\\n") && !text.includes("```")',
+        'channel === "whatsapp" || channel === "telegram" && typeof text === "string" && text.includes("\\n\\n") && !text.includes("```")',
+    ]
     legacy_split_conditions = [
         '(channel === "whatsapp") && typeof text === "string" && text.includes("\\n\\n")',
         '(channel === "whatsapp" || channel === "telegram") && typeof text === "string" && text.includes("\\n\\n")',
@@ -218,6 +263,19 @@ def build_deliver_patched(data: str, channels: list[str], force: bool = False) -
         if cond in data and guarded not in data:
             data = data.replace(cond, guarded)
             upgraded_legacy_split = True
+    for cond in old_split_predicates:
+        if cond in data and cond != split_predicate:
+            data = data.replace(cond, split_predicate)
+            upgraded_legacy_split = True
+
+    old_sendpayload_guard_fenced = (
+        f'if (handler.sendPayload && effectivePayload.channelData && !(({channel_checks}) && '
+        'payloadSummary.mediaUrls.length === 0 && typeof payloadSummary.text === "string" && '
+        'payloadSummary.text.includes("\\n\\n") && !payloadSummary.text.includes("```"))) {'
+    )
+    if old_sendpayload_guard_fenced in data and sendpayload_guard not in data:
+        data = data.replace(old_sendpayload_guard_fenced, sendpayload_guard)
+        upgraded_legacy_split = True
 
     upgraded_dedupe = False
     if DELIVER_DEDUPE_OLD in data and DELIVER_DEDUPE_NEW not in data:
@@ -268,13 +326,16 @@ def build_deliver_patched(data: str, channels: list[str], force: bool = False) -
 
     if old_split in data and marker not in data:
         data = data.replace(old_split, marker)
+    if 'text.split(/\\n\\n+/).map((s) => s.trim()).filter(Boolean);' in data:
+        data = data.replace('text.split(/\\n\\n+/).map((s) => s.trim()).filter(Boolean);', 'text.replace(/\\r\\n?/g, "\\n").split(/\\n\\s*\\n+/).map((s) => s.trim()).filter(Boolean);')
+        upgraded_legacy_split = True
     if old_sendpayload in data and sendpayload_guard not in data:
         data = data.replace(old_sendpayload, sendpayload_guard)
 
     has_legacy_split = any(cond in data for cond in legacy_split_conditions)
 
     # Check if exact patch already exists (split + sendPayload guard)
-    if marker in data and sendpayload_guard in data and not has_legacy_split:
+    if marker in data and sendpayload_guard in data and not has_legacy_split and not (upgraded_legacy_split or upgraded_dedupe or upgraded_atomic_guard):
         return None, "already patched (exact match)"
 
     # If split marker exists but sendPayload guard missing, upgrade in place
@@ -320,8 +381,8 @@ def build_deliver_patched(data: str, channels: list[str], force: bool = False) -
 
     indent = m.group("i")
     block = (
-        f'{indent}\tif ({channel_checks} && typeof text === "string" && text.includes("\\n\\n") && !text.includes("```")) {{\n'
-        f'{indent}\t\tconst bubbles = text.split(/\\n\\n+/).map((s) => s.trim()).filter(Boolean);\n'
+        f'{indent}\tif {split_predicate} {{\n'
+        f'{indent}\t\tconst bubbles = text.replace(/\\r\\n?/g, "\\n").split(/\\n\\s*\\n+/).map((s) => s.trim()).filter(Boolean);\n'
         f'{indent}\t\tfor (const bubble of bubbles) {{\n'
         f'{indent}\t\t\tthrowIfAborted(abortSignal);\n'
         f'{indent}\t\t\tresults.push(await handler.sendText(bubble, overrides));\n'
@@ -411,14 +472,27 @@ def build_web_patched(text: str) -> tuple[str | None, str]:
 def build_telegram_bot_patched(text: str) -> tuple[str | None, str]:
     patched = text
     changed = False
+    preview_patch_skipped = False
 
     if "function buildChunkTextResolver(params)" in patched:
         old_line = 'const markdownChunks = params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];'
+        if TELEGRAM_PATCH_MARKER in patched and TELEGRAM_PATCH_MARKER_V2 not in patched:
+            patched = patched.replace(TELEGRAM_PATCH_MARKER, TELEGRAM_PATCH_MARKER_V2, 1)
+            changed = True
         if TELEGRAM_PATCH_MARKER_OLD in patched and TELEGRAM_PATCH_MARKER not in patched:
             patched = patched.replace(TELEGRAM_PATCH_MARKER_OLD, TELEGRAM_PATCH_MARKER, 1)
             changed = True
         elif old_line in patched and TELEGRAM_PATCH_MARKER not in patched:
             patched = patched.replace(old_line, TELEGRAM_PATCH_MARKER, 1)
+            changed = True
+        if TELEGRAM_PATCH_MARKER in patched and TELEGRAM_PATCH_MARKER_V2 not in patched:
+            patched = patched.replace(TELEGRAM_PATCH_MARKER, TELEGRAM_PATCH_MARKER_V2, 1)
+            changed = True
+
+    if "async function sendTelegramText(bot, chatId, text, runtime, opts) {" in patched:
+        split_anchor = '\tconst hasFallbackText = fallbackText.trim().length > 0;\n'
+        if TELEGRAM_SENDTEXT_SPLIT_MARKER not in patched and split_anchor in patched:
+            patched = patched.replace(split_anchor, split_anchor + TELEGRAM_SENDTEXT_SPLIT_BLOCK, 1)
             changed = True
 
     if "const splitTextIntoLaneSegments = (text) => {" in patched:
@@ -426,33 +500,62 @@ def build_telegram_bot_patched(text: str) -> tuple[str | None, str]:
             helper_insert_anchor = "\tconst resetDraftLaneState = (lane) => {"
             idx = patched.find(helper_insert_anchor)
             if idx < 0:
-                return None, "telegram preview helper anchor not found"
-            patched = patched[:idx] + TELEGRAM_PREVIEW_HELPER + patched[idx:]
-            changed = True
+                preview_patch_skipped = True
+            else:
+                patched = patched[:idx] + TELEGRAM_PREVIEW_HELPER + patched[idx:]
+                changed = True
 
-        if TELEGRAM_PREVIEW_GUARD not in patched:
+        if TELEGRAM_PREVIEW_GUARD not in patched and not preview_patch_skipped:
             old_deliver = '\t\t\t\tdeliver: async (payload, info) => {\n\t\t\t\t\tconst previewButtons = (payload.channelData?.telegram)?.buttons;'
             new_deliver = '\t\t\t\tdeliver: async (payload, info) => {\n\t\t\t\t\tif (!shouldSendTelegramPreviewUpdate(payload, info)) return;\n\t\t\t\t\tconst previewButtons = (payload.channelData?.telegram)?.buttons;'
             if old_deliver not in patched:
-                return None, "telegram preview deliver anchor not found"
-            patched = patched.replace(old_deliver, new_deliver, 1)
-            changed = True
+                preview_patch_skipped = True
+            else:
+                patched = patched.replace(old_deliver, new_deliver, 1)
+                changed = True
 
     if not changed:
         has_chunk = "function buildChunkTextResolver(params)" in text
         has_preview_path = "const splitTextIntoLaneSegments = (text) => {" in text
-        if has_chunk and TELEGRAM_PATCH_MARKER in text and (not has_preview_path or TELEGRAM_PREVIEW_MARKER in text and TELEGRAM_PREVIEW_GUARD in text):
+        if has_chunk and (TELEGRAM_PATCH_MARKER in text or TELEGRAM_PATCH_MARKER_V2 in text):
             return None, "already patched"
-        if has_preview_path and TELEGRAM_PREVIEW_MARKER in text and TELEGRAM_PREVIEW_GUARD in text and (not has_chunk or TELEGRAM_PATCH_MARKER in text):
+        if has_preview_path and TELEGRAM_PREVIEW_MARKER in text and TELEGRAM_PREVIEW_GUARD in text and (not has_chunk or TELEGRAM_PATCH_MARKER in text or TELEGRAM_PATCH_MARKER_V2 in text):
             return None, "already patched"
         return None, "no telegram patch targets"
+    if preview_patch_skipped:
+        return patched, "patched (preview guard skipped: bundle anchor mismatch)"
+    return patched, "patched"
+
+
+def build_telegram_action_send_patched(text: str) -> tuple[str | None, str]:
+    if TELEGRAM_ACTION_SEND_SIG not in text and TELEGRAM_ACTION_SEND_SIG_PATCHED not in text:
+        return None, "no telegram action sender target"
+
+    patched = text
+    changed = False
+
+    if TELEGRAM_ACTION_SEND_SIG in patched and TELEGRAM_ACTION_SEND_SIG_PATCHED not in patched:
+        patched = patched.replace(TELEGRAM_ACTION_SEND_SIG, TELEGRAM_ACTION_SEND_SIG_PATCHED, 1)
+        changed = True
+
+    split_anchor = '\t\treturn await withTelegramThreadFallback(params, "message", opts.verbose, async (effectiveParams, label) => {\n'
+    if TELEGRAM_ACTION_SPLIT_MARKER not in patched and split_anchor in patched:
+        patched = patched.replace(split_anchor, split_anchor + TELEGRAM_ACTION_SPLIT_BLOCK, 1)
+        changed = True
+
+    if not changed:
+        if TELEGRAM_ACTION_SEND_SIG_PATCHED in text and TELEGRAM_ACTION_SPLIT_MARKER in text:
+            return None, "already patched"
+        return None, "no telegram action sender target"
     return patched, "patched"
 
 
 def status_deliver(path: Path) -> tuple[str, str]:
     data = path.read_text(encoding="utf-8", errors="ignore")
-    if 'text.includes("\\n\\n") && !text.includes("```")' in data:
+    if '/\\n\\s*\\n+/.test(text.replace(/\\r\\n?/g, "\\n")) && !text.includes("```")' in data:
         return "patched", "marker present"
+    if 'text.includes("\\n\\n") && !text.includes("```")' in data:
+        return "unpatched", "legacy paragraph splitter (whitespace-unsafe)"
     if ('channel === "whatsapp"' in data or 'channel === "telegram"' in data) and 'text.includes("\\n\\n")' in data:
         return "unpatched", "split guard missing fenced-code protection"
     if "const sendTextChunks = async (text, overrides) => {" in data:
@@ -477,14 +580,22 @@ def status_telegram_bot(path: Path) -> tuple[str, str]:
     data = path.read_text(encoding="utf-8", errors="ignore")
     has_chunk_resolver = "function buildChunkTextResolver(params)" in data
     has_preview_path = "const splitTextIntoLaneSegments = (text) => {" in data
+    has_sendtext = "async function sendTelegramText(bot, chatId, text, runtime, opts) {" in data
     if not has_chunk_resolver and not has_preview_path:
         return "skip", "no telegram patch targets"
 
-    chunk_ok = not has_chunk_resolver or TELEGRAM_PATCH_MARKER in data
+    chunk_ok = not has_chunk_resolver or TELEGRAM_PATCH_MARKER_V2 in data
     preview_ok = not has_preview_path or (TELEGRAM_PREVIEW_MARKER in data and TELEGRAM_PREVIEW_GUARD in data)
-    if chunk_ok and preview_ok:
+    sendtext_ok = not has_sendtext or TELEGRAM_SENDTEXT_SPLIT_MARKER in data
+    if chunk_ok and preview_ok and sendtext_ok:
         return "patched", "markers present"
+    if chunk_ok and sendtext_ok and has_preview_path and not preview_ok:
+        return "patched", "chunk resolver patched (preview guard optional/unmatched)"
 
+    if has_chunk_resolver and TELEGRAM_PATCH_MARKER in data and TELEGRAM_PATCH_MARKER_V2 not in data:
+        return "unpatched", "legacy paragraph splitter (whitespace-unsafe)"
+    if has_sendtext and not sendtext_ok:
+        return "unpatched", "sendTelegramText splitter missing"
     if has_chunk_resolver and not chunk_ok and 'const markdownChunks = params.chunkMode === "newline" ? chunkMarkdownTextWithMode(markdown, params.textLimit, params.chunkMode) : [markdown];' in data:
         return "unpatched", "legacy chunk resolver"
     if has_preview_path and not preview_ok:
@@ -492,14 +603,40 @@ def status_telegram_bot(path: Path) -> tuple[str, str]:
     return "unknown", "signature not found"
 
 
+def status_telegram_action_send(path: Path) -> tuple[str, str]:
+    data = path.read_text(encoding="utf-8", errors="ignore")
+    has_target = TELEGRAM_ACTION_SEND_SIG in data or TELEGRAM_ACTION_SEND_SIG_PATCHED in data
+    if not has_target:
+        return "skip", "no telegram action sender target"
+    if TELEGRAM_ACTION_SEND_SIG_PATCHED in data and TELEGRAM_ACTION_SPLIT_MARKER in data:
+        return "patched", "markers present"
+    return "unpatched", "sender splitter missing"
+
+
 def discover_telegram_chunk_files(dist: Path) -> list[Path]:
     files: set[Path] = set()
     files |= set(dist.glob("pi-embedded-*.js"))
     files |= set(dist.glob("reply-*.js"))
+    files |= set(dist.glob("compact-*.js"))
+    files |= set(dist.glob("dispatch-*.js"))
     files |= set(dist.glob("subagent-registry-*.js"))
     plugin_sdk = dist / "plugin-sdk"
     if plugin_sdk.is_dir():
+        files |= set(plugin_sdk.glob("dispatch-*.js"))
         files |= set(plugin_sdk.glob("reply-*.js"))
+        files |= set(plugin_sdk.glob("compact-*.js"))
+    return sorted(files)
+
+
+def discover_telegram_action_send_files(dist: Path) -> list[Path]:
+    files: set[Path] = set()
+    files |= set(dist.glob("send-*.js"))
+    plugin_sdk = dist / "plugin-sdk"
+    if plugin_sdk.is_dir():
+        files |= set(plugin_sdk.glob("send-*.js"))
+    action_file = dist / "channels" / "plugins" / "actions" / "telegram.js"
+    if action_file.is_file():
+        files.add(action_file)
     return sorted(files)
 
 
@@ -535,6 +672,8 @@ def patch_one(path: Path, kind: str, dry_run: bool, strict: bool, node_bin: str 
         patched_data, note = build_deliver_patched(data, channels, force)
     elif kind == "web":
         patched_data, note = build_web_patched(data)
+    elif kind == "telegram-send":
+        patched_data, note = build_telegram_action_send_patched(data)
     else:
         patched_data, note = build_telegram_bot_patched(data)
 
@@ -544,6 +683,7 @@ def patch_one(path: Path, kind: str, dry_run: bool, strict: bool, node_bin: str 
             or note in {
                 "no deliverWebReply",
                 "no web chunk resolver",
+                "no telegram action sender target",
                 "no telegram chunk resolver",
                 "no telegram patch targets",
                 "needle not found",
@@ -614,12 +754,14 @@ def main() -> int:
         deliver_total = deliver_patched = deliver_unpatched = deliver_unknown = 0
         web_total = web_patched = web_unpatched = web_unknown = 0
         telegram_total = telegram_patched = telegram_unpatched = telegram_unknown = 0
+        telegram_send_total = telegram_send_patched = telegram_send_unpatched = telegram_send_unknown = 0
 
         for dist in dist_dirs:
             deliver_files = discover_deliver_files(dist)
             web_files = discover_web_files(dist)
             telegram_files = discover_telegram_chunk_files(dist)
-            if deliver_files or web_files or telegram_files:
+            telegram_send_files = discover_telegram_action_send_files(dist)
+            if deliver_files or web_files or telegram_files or telegram_send_files:
                 print(f"\nStatus in: {dist}")
 
             for f in deliver_files:
@@ -659,10 +801,24 @@ def main() -> int:
                     telegram_unknown += 1
                 print(f"  tg-bot  {st:9} {f.name} ({note})")
 
+            for f in telegram_send_files:
+                st, note = status_telegram_action_send(f)
+                if st == "skip":
+                    continue
+                telegram_send_total += 1
+                if st == "patched":
+                    telegram_send_patched += 1
+                elif st == "unpatched":
+                    telegram_send_unpatched += 1
+                else:
+                    telegram_send_unknown += 1
+                print(f"  tg-send {st:9} {f.name} ({note})")
+
         print("\nSummary:")
         print(f"- deliver files: {deliver_total} (patched: {deliver_patched}, unpatched: {deliver_unpatched}, unknown: {deliver_unknown})")
         print(f"- web files: {web_total} (patched: {web_patched}, unpatched: {web_unpatched}, unknown: {web_unknown})")
         print(f"- telegram bot files: {telegram_total} (patched: {telegram_patched}, unpatched: {telegram_unpatched}, unknown: {telegram_unknown})")
+        print(f"- telegram sender files: {telegram_send_total} (patched: {telegram_send_patched}, unpatched: {telegram_send_unpatched}, unknown: {telegram_send_unknown})")
         return 0
 
     total = patched = skipped = failed = would = 0
@@ -673,7 +829,8 @@ def main() -> int:
         deliver_files = discover_deliver_files(dist)
         web_files = discover_web_files(dist)
         telegram_files = discover_telegram_chunk_files(dist)
-        files = [("deliver", f) for f in deliver_files] + [("web", f) for f in web_files] + [("telegram", f) for f in telegram_files]
+        telegram_send_files = discover_telegram_action_send_files(dist)
+        files = [("deliver", f) for f in deliver_files] + [("web", f) for f in web_files] + [("telegram", f) for f in telegram_files] + [("telegram-send", f) for f in telegram_send_files]
         if not files:
             continue
 
