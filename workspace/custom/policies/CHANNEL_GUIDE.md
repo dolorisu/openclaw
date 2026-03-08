@@ -42,6 +42,7 @@ Cross-channel delivery policy (WhatsApp, Telegram, Discord, and others).
 - WhatsApp default text style: plain text labels with colon (`Progress:`, `Path:`, `Command:`, `Evidence:`, `Hasil:`).
 - Avoid markdown emphasis markers (`**bold**`, `__underline__`) unless user explicitly asks markdown styling.
 - Strict default: do not use markdown heading-style emphasis (`**Title:**`) for normal owner replies.
+- Owner default WhatsApp ops/runbook mode: markdown bold wrappers are forbidden (`**text**`), use plain labels or emoji-prefix labels only.
 - Emoji readability mode is allowed when owner prefers it.
 - Preferred semantic emoji mapping when enabled:
   - `⏳ Progress:`
@@ -95,6 +96,7 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
 - Avoid markdown tables by default in WhatsApp replies; prefer plain bullets or monospace blocks.
 - For daily ops/runbook replies, never use separator-only lines and never use markdown tables unless user explicitly asks table format.
 - For owner default mode, treat table/separator ban as strict even in concise replies.
+- For owner default mode, treat markdown-bold ban as strict in concise replies too.
 - Prefer this compact proof style:
   - `Command:` one line,
   - fenced output snippet,

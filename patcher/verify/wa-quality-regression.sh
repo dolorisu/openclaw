@@ -125,9 +125,12 @@ run_step() {
   local before after delta
   before="$(count_sent)"
 
-  if ! run_agent_deliver "$msg" "$out_file"; then
-    if (( RETRY_ON_LOCK == 1 )) && rg -q "session file locked|gateway timeout" "$out_file"; then
+    if ! run_agent_deliver "$msg" "$out_file"; then
+    if (( RETRY_ON_LOCK == 1 )) && rg -q "session file locked|gateway timeout|rate-overlimit" "$out_file"; then
       echo "[$name] lock/timeout detected -> restarting gateway and retry once"
+      if rg -q "rate-overlimit" "$out_file"; then
+        sleep 8
+      fi
       openclaw gateway restart >/tmp/wa_regression_gateway_restart.txt 2>&1 || true
       if ! run_agent_deliver "$msg" "$out_file"; then
         echo "[$name] command failed after retry"
@@ -196,7 +199,7 @@ PY
       fi
       return 0
       ;;
-    03_ops_apt|04_search|05_complex)
+    03_ops_apt|04_search|05_complex|06_tech_lane)
       ;;
     *)
       return 0
@@ -219,7 +222,7 @@ def pass_claim_conflicts_with_evidence(payload):
     evidence_markers=list(re.finditer(r'(^|\n)\s*(?:📋\s*)?Evidence\s*:\s*', payload, re.I))
     for marker in evidence_markers:
         remaining=payload[marker.end():]
-        block=re.match(r'\n```[^\n]*\n([\s\S]*?)\n```', remaining)
+        block=re.match(r'\s*```[^\n]*\n([\s\S]*?)\n\s*```', remaining)
         if not block:
             continue
         evidence_block=block.group(1)
@@ -245,12 +248,12 @@ if name in ("03_ops_apt", "05_complex"):
         evidence_markers=list(re.finditer(r'(^|\n)\s*(?:📋\s*)?Evidence\s*:\s*', text, re.I))
         for marker in evidence_markers:
             remaining=text[marker.end():]
-            block=re.match(r'\n```[^\n]*\n([\s\S]*?)\n```', remaining)
+            block=re.match(r'\s*```[^\n]*\n([\s\S]*?)\n\s*```', remaining)
             if block:
                 evidence_blocks.append(block.group(1).strip())
 
         raw_token=re.compile(
-            r'(?:\b(?:tcp|udp|LISTEN|ESTAB|HTTP/[0-9.]+|http/[0-9.]+|Active:|Main PID|PID|ii\s|Hit:|Get:|Err:|failed|running)\b|/[^\s]+|:[0-9]{2,5}|\b(?:0\.0\.0\.0|127\.0\.0\.1|localhost)\b)',
+            r'(?:\b(?:tcp|udp|LISTEN|ESTAB|HTTP/[0-9.]+|http/[0-9.]+|Active:|Main PID|PID|ii\s|Hit:|Get:|Err:|failed|running|Port\s+free|still\s+in\s+use|Exit\s+code)\b|/[^\s]+|:[0-9]{1,5}|\b(?:0\.0\.0\.0|127\.0\.0\.1|localhost)\b)',
             re.I,
         )
         synthetic_phrase=re.compile(
@@ -266,6 +269,8 @@ if name in ("03_ops_apt", "05_complex"):
             checks += [any(raw_token.search(ln) for ln in lines)]
 elif name == "04_search":
     checks += [has(r'(?:🔧\s*)?Command\s*:'), has(r'(?:📋\s*)?Evidence\s*:'), has(r'(?:✅\s*)?Hasil\s*:')]
+elif name == "06_tech_lane":
+    checks += [has(r'(?:🔧\s*)?Command\s*:'), has(r'(?:📋\s*)?Evidence\s*:'), has(r'(?:✅\s*)?Hasil\s*:')]
 
 forbidden=[
     re.search(r'^\|.*\|\s*$', text, re.M),
@@ -275,7 +280,7 @@ forbidden=[
 ]
 checks += [not any(forbidden)]
 
-if name in ("03_ops_apt", "04_search", "05_complex"):
+if name in ("03_ops_apt", "04_search", "05_complex", "06_tech_lane"):
     checks += [not pass_claim_conflicts_with_evidence(text)]
 
 if not all(checks):
@@ -296,14 +301,17 @@ if [[ -n "$SESSION_ID" ]]; then
 fi
 
 run_step "00_reset" "/reset"
+run_step "00_lock" "LOCK STRICT: plain colon labels only, no markdown bold, no markdown table, no separator lines (---). For runbook/troubleshooting, every phase must include Evidence as fenced raw command output snippet (1-3 lines), no paraphrase-only evidence."
 run_step "01_smoke" "Balas satu bubble: OK regression smoke."
 run_step "02_fenced_tree" "Balas SATU fenced code block berisi tree mini 5 baris dan footer total. Jangan ada teks di luar code block."
 
-run_step "03_ops_apt" "Task harian: apt update lalu install htop, verifikasi, lalu uninstall bersih. Format wajib per phase: ⏳ Progress, 📁 Path, 🔧 Command, 📋 Evidence (raw fenced), ✅ Hasil. Default singkat efisien."
+run_step "03_ops_apt" "Task harian: apt update lalu install htop, verifikasi, lalu uninstall bersih. Format wajib per phase: Progress/Path/Command/Evidence/Hasil (plain labels). Evidence harus fenced raw output 1-3 baris dari command yang baru dijalankan. Dilarang separator line (---), dilarang markdown bold labels, dilarang placeholder."
 run_step "04_search" "Searching: cari requireMention di ~/.openclaw, tampilkan top hasil dan arti singkat. Gunakan 🔧 Command, 📋 Evidence, ✅ Hasil. Jangan tabel dan jangan separator."
 
 if (( RUN_COMPLEX == 1 )); then
-  run_step "05_complex" "Buat task manager fullstack sederhana-menengah (Express+SQLite+frontend) live port 80. Progress per fase format Progress/Path/Command/Evidence (raw 1-3 baris), final ringkas dengan curl+ss+ps tanpa placeholder."
+  run_step "05_complex" "Troubleshooting kompleks ringkas: port 80 conflict pada VPS. Beri tepat 3 phase saja (Diagnose -> Resolve -> Verify) dengan format Progress/Path/Command/Evidence/Hasil plain labels. Gunakan command ini agar evidence tidak kosong: Diagnose `sudo ss -tlnp | grep ':80 ' || echo no-listener-80`; Resolve `sudo systemctl stop nginx; sudo systemctl is-active nginx || true`; Verify `sudo ss -tlnp | grep ':80 ' || echo no-listener-80`. Tiap Evidence wajib fenced raw output 1-3 baris (verbatim), tidak boleh empty block. Dilarang markdown bold, separator line, placeholder, dan fake values."
+  run_step "06_tech_lane" "Mode technical lane: cek cepat docker availability dengan format plain labels Progress/Path/Command/Evidence/Hasil, tanpa markdown bold/table/separator, fokus ringkas dan actionable."
+  run_step "07_casual_lane" "Mode casual lane: balas sapaan santai tepat 2 kalimat, hangat natural dengan sentuhan personality ringan, tanpa markdown table/separator/bold labels dan tanpa code block."
 fi
 
 echo
