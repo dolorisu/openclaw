@@ -22,7 +22,7 @@ Cross-channel delivery policy (WhatsApp, Telegram, Discord, and others).
 - When final has multiple sections, send each section with direct message tool and run short wait (`sleep 2` to `sleep 4`) between sections.
 - One phase per bubble: never mix two phase updates in one bubble.
 - One context per bubble: keep heading + command + evidence in the SAME bubble for that context.
-- MUST rule: if there are 2 unrelated checks/contexts, send 2 bubbles (one per context). Do not combine unrelated contexts into one bubble.
+- Hard rule: if there are 2 unrelated checks/contexts, send 2 bubbles (one per context). Do not combine unrelated contexts into one bubble.
 - If two checks are tightly related in the SAME context (for example runtime + health quick check), they may be combined in one bubble when explicitly requested and still concise.
 - Do not split a single context into separate bubbles like:
   - bubble 1: heading only,
@@ -41,6 +41,7 @@ Cross-channel delivery policy (WhatsApp, Telegram, Discord, and others).
 - `Evidence:` lines must be verbatim from the latest tool output (except optional truncation with `...`).
 - WhatsApp default text style: plain text labels with colon (`Progress:`, `Path:`, `Command:`, `Evidence:`, `Hasil:`).
 - Avoid markdown emphasis markers (`**bold**`, `__underline__`) unless user explicitly asks markdown styling.
+- Strict default: do not use markdown heading-style emphasis (`**Title:**`) for normal owner replies.
 - Emoji readability mode is allowed when owner prefers it.
 - Preferred semantic emoji mapping when enabled:
   - `⏳ Progress:`
@@ -52,6 +53,11 @@ Cross-channel delivery policy (WhatsApp, Telegram, Discord, and others).
   - MUST use labeled task blocks, not heading-only summaries.
   - Default block labels: `⏳ Progress:`, `📁 Path:`, `🔧 Command:`, `📋 Evidence:`, `✅ Hasil:`.
   - If user asks concise, keep each block short; do not switch to markdown section summaries.
+- When emoji/kaomoji mode is active, vary symbols naturally; avoid repeating identical emoji/kaomoji pattern in consecutive replies unless user asks a fixed style.
+- WhatsApp strict compliance (default behavior):
+  - no markdown tables,
+  - no separator-only lines (`---`),
+  - convert table-style content into bullets or fenced snippets.
 
 ## Exceptions
 Use single bubble only when content must stay contiguous:
@@ -73,6 +79,8 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
 - Concise mode hard cap: each `Evidence` fenced block should be about 3-8 lines.
 - For long outputs in concise mode, include only decisive raw lines (status/version/port/path/result), not full install logs.
 - For tree output, always use fenced code block.
+- For WhatsApp command runbooks (copy-paste lists), prefer bullet + inline code lines over large fenced blocks by default.
+- Use fenced blocks for commands only when user explicitly asks raw/full block or when command readability would break without fencing.
 - Prefer pretty tree view (`tree` style with branches) over flat `./file` listing.
 - Default tree command for reports:
   - `tree -L 2 --dirsfirst -I 'node_modules|.git|dist|build|coverage|tmp|logs' <path>`
@@ -86,6 +94,7 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
 - Avoid standalone heading-only bubbles like `Step 1:`/`Step 2:` without command+evidence payload.
 - Avoid markdown tables by default in WhatsApp replies; prefer plain bullets or monospace blocks.
 - For daily ops/runbook replies, never use separator-only lines and never use markdown tables unless user explicitly asks table format.
+- For owner default mode, treat table/separator ban as strict even in concise replies.
 - Prefer this compact proof style:
   - `Command:` one line,
   - fenced output snippet,
@@ -94,6 +103,7 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
 - For daily-ops/search phases, prefer fenced raw snippets for `Evidence:` over prose summaries.
 - Keep label format consistent with colon form, not heading form (use `Progress:` not `**Progress**`).
 - Keep labels in colon form; optional emoji prefix is allowed when readability mode is desired.
+- Never wrap section labels with markdown emphasis (for example `**Fungsi:**`, `**Poin penting:**`).
 - Forbidden in default owner ops replies:
   - standalone separator lines (`---`),
   - markdown table blocks,
@@ -111,10 +121,11 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
 - Do not dump massive raw listing by default; summarize and offer deeper drill-down.
 - Prefer style like: `folder_name  <- short label` for key entries.
 - Default WhatsApp directory bubble template:
-  - `Path: /abs/path`
-  - `Isi utama:`
+  - first line must start with `Path: /abs/path`
+  - second label must be `Isi utama:`
   - fenced monospace tree/list where key lines use `name <- label`
   - optional closing line: `Mau saya buka salah satu?`
+- Treat this template as mandatory default for folder/directory requests unless user asks another format.
 
 ## File-open style
 - When user asks to open/read a file, provide:
@@ -126,11 +137,12 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
 - Keep explanation detailed but structured; avoid vague one-liners.
 - Use heading blocks without separators; keep section flow compact.
 - Default WhatsApp file-open bubble order:
-  - `Path: ... | Type/Size: ...`
-  - `Fungsi:` one concise sentence
-  - `Poin penting:` 2-5 bullets
-  - `Cuplikan:` one fenced block with exact lines
+  - first label must be `Path: ... | Type/Size: ...`
+  - second label must be `Fungsi:` one concise sentence
+  - third label must be `Poin penting:` 2-5 bullets
+  - fourth label must be `Cuplikan:` one fenced block with exact lines
   - `Catatan risiko:` only when relevant
+- Treat this order as mandatory default for file-open/read requests unless user asks another format.
 
 ## Media reply style
 - If user asks to send/show image, prioritize sending the actual image attachment first, then brief caption.
@@ -155,6 +167,13 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
   - tree,
   - runbook.
 - Target each final bubble to stay compact and scannable (roughly <= 12 lines unless raw output explicitly requested).
+- WhatsApp timestamp-safe tail:
+  - avoid ending a bubble with a very long final line,
+  - avoid ending with heavy inline code/emoji clusters on the final line,
+  - if needed, split closing question/CTA into a short final line so timestamp does not create visual "blank tail".
+  - target final line to be short (roughly <= 22 chars) for WhatsApp readability.
+  - for numbered tips, keep each bullet sentence compact and avoid long trailing clause on the last wrapped line.
+- for fenced command blocks, avoid ending the bubble exactly at the closing fence; append one short neutral tail line only when needed (for example context/path/next step) to stabilize timestamp placement.
 - If user requests explicit bubble count/section count (for example "2 bubble" or "3 section"), treat it as strict output contract.
 - For 2+ top-level sections, send each section through direct message tool as separate sends.
 - For slash-command reply shape, follow `custom/policies/COMMANDS.md` (compact, deterministic, low-noise).

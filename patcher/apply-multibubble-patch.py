@@ -24,7 +24,8 @@ from typing import Iterable
 
 # Will be dynamically built based on --channels arg
 DELIVER_MARKER_TEMPLATE = '({channel_checks}) && typeof text === "string" && text.includes("\\n\\n")'
-WEB_PATCH_MARKER_A = 'const rawText = replyResult.text || "";'
+WEB_PATCH_MARKER_A_OLD = 'const rawText = replyResult.text || "";'
+WEB_PATCH_MARKER_A = 'const rawText = (replyResult.text || "").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*$/gm, "$1:").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*/gm, "$1: ").replace(/^\\s*[-*_]{3,}\\s*$/gm, "").replace(/\\n{3,}/g, "\\n\\n").trim();'
 WEB_PATCH_MARKER_B_OLD = 'const paragraphParts = rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);'
 WEB_PATCH_MARKER_B = 'const keepAtomicProgress = /^\\s*Progress:\\s+/m.test(rawText) && /^\\s*Path:\\s+/m.test(rawText) && /^\\s*Command:\\s+/m.test(rawText) && /^\\s*Evidence:\\s*/m.test(rawText);'
 WEB_PATCH_MARKER_C = 'const paragraphParts = rawText.includes("```") || keepAtomicProgress ? [rawText] : rawText.split(/\\n\\n+/).map((part) => part.trim()).filter((part) => part && !/^[-*_]{3,}$/.test(part));'
@@ -344,10 +345,18 @@ def build_web_patched(text: str) -> tuple[str | None, str]:
     if WEB_PATCH_MARKER_A in text and WEB_PATCH_MARKER_B in text and WEB_PATCH_MARKER_C in text and WEB_PATCH_MARKER_D in text:
         return None, "already patched"
 
+    # Upgrade older rawText resolver to normalized plain-label resolver
+    if WEB_PATCH_MARKER_A_OLD in text and WEB_PATCH_MARKER_A not in text:
+        upgraded = text.replace(WEB_PATCH_MARKER_A_OLD, WEB_PATCH_MARKER_A, 1)
+        if upgraded != text and WEB_PATCH_MARKER_B in upgraded and WEB_PATCH_MARKER_C in upgraded and WEB_PATCH_MARKER_D in upgraded:
+            return upgraded, "upgraded plain-label normalizer"
+
     # Upgrade legacy web patch (paragraph split without fenced-code protection)
     legacy_line = 'const textChunks = paragraphParts.flatMap((part) => chunkMarkdownTextWithMode(markdownToWhatsApp(convertMarkdownTables(part, tableMode)), textLimit, chunkMode));'
     if WEB_PATCH_MARKER_B_OLD in text and WEB_PATCH_MARKER_B not in text:
         upgraded = text.replace(WEB_PATCH_MARKER_B_OLD, WEB_PATCH_MARKER_B, 1)
+        if WEB_PATCH_MARKER_A_OLD in upgraded and WEB_PATCH_MARKER_A not in upgraded:
+            upgraded = upgraded.replace(WEB_PATCH_MARKER_A_OLD, WEB_PATCH_MARKER_A, 1)
         upgraded = upgraded.replace(legacy_line, WEB_PATCH_MARKER_D, 1)
         if WEB_PATCH_MARKER_C not in upgraded:
             upgraded = upgraded.replace(WEB_PATCH_MARKER_B + '\n', WEB_PATCH_MARKER_B + '\n' + WEB_PATCH_MARKER_C + '\n', 1)
@@ -388,7 +397,7 @@ def build_web_patched(text: str) -> tuple[str | None, str]:
 
     indent = lines[target][: len(lines[target]) - len(lines[target].lstrip())]
     replacement = [
-        indent + 'const rawText = replyResult.text || "";\n',
+        indent + 'const rawText = (replyResult.text || "").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*$/gm, "$1:").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*/gm, "$1: ").replace(/^\\s*[-*_]{3,}\\s*$/gm, "").replace(/\\n{3,}/g, "\\n\\n").trim();\n',
         indent + 'const keepAtomicProgress = /^\\s*Progress:\\s+/m.test(rawText) && /^\\s*Path:\\s+/m.test(rawText) && /^\\s*Command:\\s+/m.test(rawText) && /^\\s*Evidence:\\s*/m.test(rawText);\n',
         indent + 'const paragraphParts = rawText.includes("```") || keepAtomicProgress ? [rawText] : rawText.split(/\\n\\n+/).map((part) => part.trim()).filter((part) => part && !/^[-*_]{3,}$/.test(part));\n',
         indent
