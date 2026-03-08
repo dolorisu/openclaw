@@ -52,9 +52,9 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "kimi-coding/k2p5",
+        "primary": "openai-codex/gpt-5.3-codex",
         "fallbacks": [
-          "openai-codex/gpt-5.3-codex"
+          "kimi-coding/k2p5"
         ]
       },
       "models": {
