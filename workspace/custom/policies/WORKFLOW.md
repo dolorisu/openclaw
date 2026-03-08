@@ -112,6 +112,17 @@
   - `~/.openclaw/artifacts/scratch/`
   - `~/.openclaw/artifacts/downloads/`
 - Do not write generated task files to bare `~/` unless explicitly requested.
+- If user does not provide an explicit path, auto-route output by artifact type:
+  - **Coding project (multi-file app/lib/service):** `~/.openclaw/artifacts/generated/projects/<slug>/`
+  - **One-off script (single utility/probe):** `~/.openclaw/artifacts/generated/scripts/`
+  - **Config/template snippets:** `~/.openclaw/artifacts/generated/configs/`
+  - **Reports/exports/log snapshots:** `~/.openclaw/artifacts/generated/reports/`
+  - **Images/media/downloaded assets:** `~/.openclaw/artifacts/generated/assets/` (subfolders: `images/`, `video/`, `audio/`)
+  - **Temporary experiments/scratch outputs:** `~/.openclaw/artifacts/scratch/`
+- File placement contract:
+  - Always state final absolute path in the response (`Path: ...`).
+  - Prefer deterministic names with timestamp or task slug to avoid collisions.
+  - If target filename already exists, append suffix (`-v2`, `-v3`) rather than overwrite unless user asks overwrite.
 
 ## Reliability rules
 - No fake success claims.
