@@ -1,10 +1,10 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.3.2",
-    "lastTouchedAt": "2026-03-07T10:36:13.041Z"
+    "lastTouchedAt": "2026-03-08T12:58:38.990Z"
   },
   "wizard": {
-    "lastRunAt": "2026-03-06T18:14:34.933Z",
+    "lastRunAt": "2026-03-08T12:58:38.884Z",
     "lastRunVersion": "2026.3.2",
     "lastRunCommand": "configure",
     "lastRunMode": "local"
@@ -61,7 +61,8 @@
         "openai-codex/gpt-5.3-codex": {},
         "kimi-coding/k2p5": {
           "alias": "Kimi for Coding"
-        }
+        },
+        "openai-codex/gpt-5.3-codex-spark": {}
       },
       "contextTokens": 50000,
       "memorySearch": {
@@ -98,7 +99,7 @@
       }
     },
     "elevated": {
-      "enabled": false
+      "enabled": true
     }
   },
   "commands": {
@@ -126,6 +127,12 @@
       "groups": {
         "*": {
           "requireMention": true
+        },
+        "120363424987356245@g.us": {
+          "requireMention": false
+        },
+        "120363425302186820@g.us": {
+          "requireMention": false
         }
       },
       "ackReaction": {
@@ -135,6 +142,16 @@
       },
       "debounceMs": 0,
       "mediaMaxMb": 50
+    },
+    "telegram": {
+      "enabled": true,
+      "dmPolicy": "allowlist",
+      "botToken": "8629213867:AAH7nF6842GrH3eM6yG3-DEFiu4iEmuD2eM",
+      "allowFrom": [
+        "849612359"
+      ],
+      "groupPolicy": "allowlist",
+      "streaming": "partial"
     }
   },
   "gateway": {

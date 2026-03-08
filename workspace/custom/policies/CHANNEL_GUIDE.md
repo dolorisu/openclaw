@@ -2,6 +2,21 @@
 
 Cross-channel delivery policy (WhatsApp, Telegram, Discord, and others).
 
+## 🔒 VERBATIM OUTPUT LOCK (CODEX MODEL OVERRIDE)
+
+**DO NOT paraphrase or summarize Command/Evidence fields:**
+- ❌ WRONG: `🔧 Command: Check port 80 status` (this is a label, not a command)
+- ✅ CORRECT: `🔧 Command: sudo ss -tlnp | grep ':80 ' || echo no-listener-80`
+- ❌ WRONG: `📋 Evidence: Service is running` (synthetic summary)
+- ✅ CORRECT: `📋 Evidence:` followed by fenced verbatim command output
+
+**If you are a creative model (GPT-5, Codex, etc.):**
+- RESIST the urge to "improve readability" by abstracting commands.
+- RESIST the urge to "summarize" evidence into prose.
+- The user NEEDS copy-pasteable commands for production debugging.
+- The user NEEDS raw output for root cause analysis.
+- Test gates will REJECT paraphrased output as policy violation.
+
 ## Primary objective
 - Deliver readable multi-bubble responses by default.
 
@@ -117,7 +132,12 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
   - standalone separator lines (`---`),
   - markdown table blocks,
   - empty fenced code blocks,
-  - placeholder evidence tokens (`(no output)`, `N/A`, `...`),
+  - placeholder evidence tokens **INSIDE fenced blocks**:
+    - `(no output)` ← STRICTLY BANNED inside ``` blocks
+    - `N/A` ← BANNED
+    - `...` as placeholder ← BANNED
+    - These phrases break automated validation gates
+  - If command output is truly empty, use empty fenced block OR add explanation OUTSIDE fence
   - narrative evidence without any verbatim command-output snippet,
   - `PASS` claim when evidence shows failure signals (`command not found`, `not authenticated`, `permission denied`, `error`, `failed`),
   - invented values not present in command output (for example fake PID/timestamp/status).
