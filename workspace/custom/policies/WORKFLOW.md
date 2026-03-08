@@ -34,6 +34,8 @@
   - Keep one command context per bubble (no mixed apt+docker in same bubble unless same phase and tightly coupled).
   - `Evidence` must contain raw lines from the immediately preceding command run.
   - `Evidence` should be shown as fenced raw snippet when command output is available.
+  - For diagnosis/runbook tasks, each phase must include at least one raw evidence excerpt (1-3 lines) from executed command output.
+  - Do not use synthetic evidence text such as "output menunjukkan..." or "status active/inactive" without raw command lines.
   - Final result bubble includes: `Hasil`, `Perubahan`, `Verifikasi`, `Rollback singkat` (when relevant).
   - Labels must use colon plain text form (`Progress:`) and avoid markdown heading/emphasis wrappers.
   - No summary-only mode: for benchmark/training tasks, always output phase blocks (not only final ringkasan).
@@ -76,6 +78,7 @@
 - If a command produced no stdout, show another measurable evidence item from the same phase (for example file count, process check, endpoint status) before sending progress.
 - Evidence integrity: never invent command output. If you show output lines, they must be copied from actual tool results from the same run.
 - If exact output is not available, say so explicitly and continue with measurable checks instead of fabricating snippets.
+- Synthetic evidence narration is not valid evidence. Always include raw snippet lines when a command was run.
 - If a phase has an issue/change of plan, mention the reason and the replacement action in the same progress bubble.
 - Never merge `Progress: Verify` and final report in one bubble.
 - Do not use decorative separator-only bubbles (`---`, `***`, `___`).
@@ -165,6 +168,7 @@
   - Never use empty code block or placeholder evidence (`(no output)`, `...`, `N/A`, `kosong`).
   - Never fabricate values (PID, timestamp, status code, file line) that are not present in tool output.
   - Evidence block must contain verbatim command output lines, not rewritten prose like `File: ...` summaries.
+  - For troubleshooting/runbooks, `Evidence:` should be fenced raw snippets (not paraphrases).
   - Default style is efficient/concise; expand only when user asks detail or when troubleshooting requires it.
 - Folder/directory open:
   - first line must be `Path: /abs/path`

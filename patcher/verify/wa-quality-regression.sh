@@ -203,7 +203,7 @@ PY
       ;;
   esac
 
-  if ! python3 - "$name" "$out_file" <<'PY'
+if ! python3 - "$name" "$out_file" <<'PY'
 import re,sys
 name=sys.argv[1]
 text=open(sys.argv[2],encoding='utf-8',errors='ignore').read()
@@ -219,6 +219,33 @@ if name in ("03_ops_apt", "05_complex"):
     ev=len(re.findall(r'(^|\n)\s*(?:📋\s*)?Evidence\s*:', text, re.I))
     checks += [progress >= 1, path >= progress, cmd >= progress, ev >= progress, has(r'(?:✅\s*)?Hasil\s*:')]
     checks += ['```' in text]
+
+    if name == "05_complex":
+        # Evidence fidelity gate: each Evidence label should be followed by a fenced raw excerpt.
+        evidence_blocks=[]
+        evidence_markers=list(re.finditer(r'(^|\n)\s*(?:📋\s*)?Evidence\s*:\s*', text, re.I))
+        for marker in evidence_markers:
+            remaining=text[marker.end():]
+            block=re.match(r'\n```[^\n]*\n([\s\S]*?)\n```', remaining)
+            if block:
+                evidence_blocks.append(block.group(1).strip())
+
+        raw_token=re.compile(
+            r'(?:\b(?:tcp|udp|LISTEN|ESTAB|HTTP/[0-9.]+|http/[0-9.]+|Active:|Main PID|PID|ii\s|Hit:|Get:|Err:|failed|running)\b|/[^\s]+|:[0-9]{2,5}|\b(?:0\.0\.0\.0|127\.0\.0\.1|localhost)\b)',
+            re.I,
+        )
+        synthetic_phrase=re.compile(
+            r'output\s+menunjukkan|status\s+(?:active|inactive)|terlihat\s+bahwa|berhasil\s+dijalankan|ringkasan\s+hasil|secara\s+garis\s+besar|intinya',
+            re.I,
+        )
+
+        checks += [progress >= 2, len(evidence_blocks) >= progress]
+        checks += [not has(r'^\s*\*\*[^\n:]{1,40}:\*\*\s*$',)]
+        for block in evidence_blocks:
+            lines=[ln.strip() for ln in block.splitlines() if ln.strip()]
+            checks += [len(lines) >= 1, len(lines) <= 8]
+            checks += [not synthetic_phrase.search(block)]
+            checks += [any(raw_token.search(ln) for ln in lines)]
 elif name == "04_search":
     checks += [has(r'(?:🔧\s*)?Command\s*:'), has(r'(?:📋\s*)?Evidence\s*:'), has(r'(?:✅\s*)?Hasil\s*:')]
 

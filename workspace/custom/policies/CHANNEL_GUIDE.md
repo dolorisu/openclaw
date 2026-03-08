@@ -101,6 +101,7 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
   - `Arti:` one short interpretation line.
 - `Path:` is required in every daily-ops phase block; use `/` if no tighter path is available.
 - For daily-ops/search phases, prefer fenced raw snippets for `Evidence:` over prose summaries.
+- For troubleshooting/runbook phases, require fenced raw snippets for `Evidence:`.
 - Keep label format consistent with colon form, not heading form (use `Progress:` not `**Progress**`).
 - Keep labels in colon form; optional emoji prefix is allowed when readability mode is desired.
 - Never wrap section labels with markdown emphasis (for example `**Fungsi:**`, `**Poin penting:**`).
@@ -109,6 +110,7 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
   - markdown table blocks,
   - empty fenced code blocks,
   - placeholder evidence tokens (`(no output)`, `N/A`, `...`),
+  - narrative evidence without any verbatim command-output snippet,
   - invented values not present in command output (for example fake PID/timestamp/status).
   - single fenced summary block that replaces required labeled task fields.
 
