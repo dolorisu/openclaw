@@ -1,10 +1,10 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.3.2",
-    "lastTouchedAt": "2026-03-08T12:58:38.990Z"
+    "lastTouchedAt": "2026-03-08T18:17:54.022Z"
   },
   "wizard": {
-    "lastRunAt": "2026-03-08T12:58:38.884Z",
+    "lastRunAt": "2026-03-08T18:17:53.972Z",
     "lastRunVersion": "2026.3.2",
     "lastRunCommand": "configure",
     "lastRunMode": "local"
@@ -54,7 +54,8 @@
       "model": {
         "primary": "openai-codex/gpt-5.3-codex",
         "fallbacks": [
-          "kimi-coding/k2p5"
+          "kimi-coding/k2p5",
+          "openai-codex/gpt-5.3-codex-spark"
         ]
       },
       "models": {
@@ -146,7 +147,7 @@
     "telegram": {
       "enabled": true,
       "dmPolicy": "allowlist",
-      "botToken": "8629213867:AAH7nF6842GrH3eM6yG3-DEFiu4iEmuD2eM",
+      "botToken": "",
       "allowFrom": [
         "849612359"
       ],

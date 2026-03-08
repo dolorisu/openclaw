@@ -72,6 +72,20 @@ bash ~/.openclaw/patcher/verify/wa-quality-regression.sh --to +6289669848875 --t
 openclaw agent --to 120363425302186820@g.us --message "/reset" --deliver --timeout 240
 ```
 
+## Direct channel smoke tests (recommended)
+
+```bash
+# WhatsApp direct/group
+openclaw agent --channel whatsapp --to 120363425302186820@g.us --message "WA smoke: reply 1 line" --deliver --timeout 240
+
+# Telegram direct (prefer numeric user ID)
+openclaw agent --channel telegram --to 849612359 --message "TG smoke: reply 1 line" --deliver --timeout 240
+```
+
+Notes:
+- Telegram `--to` is more reliable with numeric user ID than `@username`.
+- For multi-bubble proof on Telegram, ask explicit 3-paragraph response with markers (`BUBBLE-1/2/3`).
+
 ### Recommended defaults
 - Daily/stable mode (recommended): `--no-progressive`
 - Use `--progressive` only when you explicitly need live streaming previews and can tolerate occasional WhatsApp delivery flakiness.

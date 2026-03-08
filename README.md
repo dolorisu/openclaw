@@ -36,6 +36,15 @@ openclaw gateway restart
 
 Recommended daily mode: `--no-progressive` for WhatsApp stability.
 
+## Direct channel checks
+```bash
+# WhatsApp
+openclaw agent --channel whatsapp --to 120363425302186820@g.us --message "WA smoke" --deliver --timeout 240
+
+# Telegram (prefer numeric user id)
+openclaw agent --channel telegram --to 849612359 --message "TG smoke" --deliver --timeout 240
+```
+
 ## Quality Gate (handoff-safe)
 Use this gate before handing tasks to another AI agent.
 
