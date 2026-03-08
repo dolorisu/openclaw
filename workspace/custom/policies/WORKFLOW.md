@@ -29,6 +29,8 @@
 - For package/service changes, include at least one pre-check and one post-check evidence snippet.
 - Daily ops response contract (WhatsApp-oriented):
   - Each phase bubble uses exactly: `Progress`, `Path`, `Command`, `Evidence`.
+  - In owner WhatsApp mode, prefer emoji-prefixed labels by default: `⏳ Progress`, `📁 Path`, `🔧 Command`, `📋 Evidence`, `✅ Hasil`.
+  - Required labels must be plain text (no markdown wrappers like `**Progress:**` or `**🔧 Command:**`).
   - `Path` is mandatory in every phase.
   - For global/system commands (for example `apt`, `systemctl`, `docker ps`, `whoami`), use `Path: system-wide`.
   - For directory-scoped commands, use the closest concrete path (absolute path preferred); fallback to `/` only when truly unknown.
@@ -52,6 +54,16 @@
   - include quick verification command after each critical change.
 - If runtime OS is not the requested target (for example macOS vs Ubuntu), still provide target-specific runbook and mark local execution as `simulasi` or `tidak bisa dieksekusi di host ini`.
 - Avoid ending with permission questions like `Mau saya bantu?`; end with direct next action options.
+- For beginner app/build requests, do not switch into long markdown tutorial style with separator dividers.
+- Beginner mode should stay practical with labeled blocks (`Progress/Path/Command/Evidence/Hasil`) and concise runnable steps.
+- Do not use separator-only lines (`---`) as section dividers in beginner/tutorial replies.
+- In WhatsApp delivery, keep `Command:` to single-line runnable commands; do not paste long heredoc or full file bodies into `Command:`.
+- For file creation steps, use short command references (`create/update <path>`) and put code into artifact files, then verify with measurable evidence (`ls -l`, `wc -l`, checksum).
+- Avoid giant fenced code blocks in progress bubbles; if code is needed, share minimal snippet only and prioritize path + verification evidence.
+- Keep `Path:` compact for readability (prefer `~/.openclaw/...` over long absolute home path when equivalent).
+- `Evidence:` must be on its own line and rendered as fenced raw snippet (1-3 lines), not inline prose after `Evidence:`.
+- Use plain fences for evidence (```) without language tag (`text`, `bash`, etc.) to avoid WhatsApp visual noise.
+- `Command:` should stay inline one-liner (`🔧 Command: <single command>`), not multiline list under the label.
 
 ## Slash-command short-circuit
 - For slash-command turns, use deterministic command handling from `custom/policies/COMMANDS.md`.

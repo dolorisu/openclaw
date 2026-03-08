@@ -25,7 +25,7 @@ from typing import Iterable
 # Will be dynamically built based on --channels arg
 DELIVER_MARKER_TEMPLATE = '({channel_checks}) && typeof text === "string" && text.includes("\\n\\n")'
 WEB_PATCH_MARKER_A_OLD = 'const rawText = replyResult.text || "";'
-WEB_PATCH_MARKER_A = 'const rawText = (replyResult.text || "").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*$/gm, "$1:").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*/gm, "$1: ").replace(/^\\s*[-*_]{3,}\\s*$/gm, "").replace(/\\n{3,}/g, "\\n\\n").trim();'
+WEB_PATCH_MARKER_A = 'const rawText = (replyResult.text || "").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*$/gm, "$1:").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*/gm, "$1: ").replace(/^\\s*[-*_]{3,}\\s*$/gm, "").replace(/```[a-zA-Z0-9_-]+\\n/g, "```\\n").replace(/\\n{3,}/g, "\\n\\n").trim();'
 WEB_PATCH_MARKER_B_OLD = 'const paragraphParts = rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);'
 WEB_PATCH_MARKER_B = 'const keepAtomicProgress = /^\\s*Progress:\\s+/m.test(rawText) && /^\\s*Path:\\s+/m.test(rawText) && /^\\s*Command:\\s+/m.test(rawText) && /^\\s*Evidence:\\s*/m.test(rawText);'
 WEB_PATCH_MARKER_C = 'const paragraphParts = rawText.includes("```") || keepAtomicProgress ? [rawText] : rawText.split(/\\n\\n+/).map((part) => part.trim()).filter((part) => part && !/^[-*_]{3,}$/.test(part));'
@@ -397,7 +397,7 @@ def build_web_patched(text: str) -> tuple[str | None, str]:
 
     indent = lines[target][: len(lines[target]) - len(lines[target].lstrip())]
     replacement = [
-        indent + 'const rawText = (replyResult.text || "").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*$/gm, "$1:").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*/gm, "$1: ").replace(/^\\s*[-*_]{3,}\\s*$/gm, "").replace(/\\n{3,}/g, "\\n\\n").trim();\n',
+        indent + 'const rawText = (replyResult.text || "").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*$/gm, "$1:").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*/gm, "$1: ").replace(/^\\s*[-*_]{3,}\\s*$/gm, "").replace(/```[a-zA-Z0-9_-]+\\n/g, "```\\n").replace(/\\n{3,}/g, "\\n\\n").trim();\n',
         indent + 'const keepAtomicProgress = /^\\s*Progress:\\s+/m.test(rawText) && /^\\s*Path:\\s+/m.test(rawText) && /^\\s*Command:\\s+/m.test(rawText) && /^\\s*Evidence:\\s*/m.test(rawText);\n',
         indent + 'const paragraphParts = rawText.includes("```") || keepAtomicProgress ? [rawText] : rawText.split(/\\n\\n+/).map((part) => part.trim()).filter((part) => part && !/^[-*_]{3,}$/.test(part));\n',
         indent

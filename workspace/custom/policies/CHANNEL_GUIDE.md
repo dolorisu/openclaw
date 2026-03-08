@@ -95,6 +95,7 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
 - Avoid standalone heading-only bubbles like `Step 1:`/`Step 2:` without command+evidence payload.
 - Avoid markdown tables by default in WhatsApp replies; prefer plain bullets or monospace blocks.
 - For daily ops/runbook replies, never use separator-only lines and never use markdown tables unless user explicitly asks table format.
+- For beginner/tutorial replies, also avoid separator-only lines and avoid markdown horizontal-rule style output.
 - For owner default mode, treat table/separator ban as strict even in concise replies.
 - For owner default mode, bold is optional for section headings; do not bold-wrap required phase labels.
 - Prefer this compact proof style:
@@ -109,7 +110,8 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
 - For tool readiness checks, run `command -v <tool> || /usr/sbin/<tool>` first and only then report version/status.
 - For VPS checks that depend on shell profile/API keys, run through login shell (`zsh -lic`) before claiming auth/tool readiness.
 - Keep required phase labels in colon form, not heading wrappers (use `Progress:` not `**Progress:**`).
-- Keep labels in colon form; optional emoji prefix is allowed when readability mode is desired.
+- Keep labels in colon form; default owner runbook/tutorial mode should use emoji-prefixed labels for readability (`⏳ 📁 🔧 📋 ✅`).
+- Do not wrap required labels with markdown emphasis (for example `**⏳ Progress:**` is forbidden; use plain `⏳ Progress:`).
 - Do not markdown-wrap required template labels (for example keep `Fungsi:` and `Poin penting:` plain in file-open template).
 - Forbidden in default owner ops replies:
   - standalone separator lines (`---`),
@@ -120,6 +122,18 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
   - `PASS` claim when evidence shows failure signals (`command not found`, `not authenticated`, `permission denied`, `error`, `failed`),
   - invented values not present in command output (for example fake PID/timestamp/status).
   - single fenced summary block that replaces required labeled task fields.
+- Forbidden in default owner tutorial replies:
+  - standalone separator lines (`---`),
+  - markdown horizontal-rule sections used as visual dividers,
+  - heading-only chunking without actionable command/evidence content,
+  - long heredoc/full-file payload dumped inside `Command:` field,
+  - oversized code payload that risks WhatsApp auto-fragment into many mini bubbles.
+- Readability contract for owner WhatsApp runbook/tutorial replies:
+  - prefer compact `Path:` (`~/.openclaw/...`) when equivalent to long absolute path,
+  - `Evidence:` label must be followed by fenced raw lines in the next line(s),
+  - avoid inline `Evidence: value` style for technical phases,
+  - use plain fences (` ``` `) without language tags,
+  - keep `Command:` inline one-liner (no bullet list under `Command:`).
 
 ## Directory listing style
 - When user asks to "lihat isi folder/direktori", present a clean compact listing with short labels per entry.
