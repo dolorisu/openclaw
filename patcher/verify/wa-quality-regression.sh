@@ -211,6 +211,25 @@ text=open(sys.argv[2],encoding='utf-8',errors='ignore').read()
 def has(label):
     return re.search(label, text, re.I|re.M) is not None
 
+def has_bold_label_wrappers(payload):
+    return re.search(r'(^|\n)\s*\*\*[^\n*]{1,40}:\*\*\s*', payload, re.I) is not None
+
+def pass_claim_conflicts_with_evidence(payload):
+    negative=re.compile(r'command not found|not authenticated|permission denied|\berror\b|\bfailed\b', re.I)
+    evidence_markers=list(re.finditer(r'(^|\n)\s*(?:📋\s*)?Evidence\s*:\s*', payload, re.I))
+    for marker in evidence_markers:
+        remaining=payload[marker.end():]
+        block=re.match(r'\n```[^\n]*\n([\s\S]*?)\n```', remaining)
+        if not block:
+            continue
+        evidence_block=block.group(1)
+        tail=remaining[block.end():]
+        status_window='\n'.join(tail.splitlines()[:6])
+        pass_only=bool(re.search(r'\bPASS\b', status_window, re.I)) and not bool(re.search(r'\bFAIL\b', status_window, re.I))
+        if pass_only and negative.search(evidence_block):
+            return True
+    return False
+
 checks=[]
 if name in ("03_ops_apt", "05_complex"):
     progress=len(re.findall(r'(^|\n)\s*(?:⏳\s*)?Progress\s*:', text, re.I))
@@ -240,7 +259,6 @@ if name in ("03_ops_apt", "05_complex"):
         )
 
         checks += [progress >= 2, len(evidence_blocks) >= progress]
-        checks += [not has(r'^\s*\*\*[^\n:]{1,40}:\*\*\s*$',)]
         for block in evidence_blocks:
             lines=[ln.strip() for ln in block.splitlines() if ln.strip()]
             checks += [len(lines) >= 1, len(lines) <= 8]
@@ -253,8 +271,12 @@ forbidden=[
     re.search(r'^\|.*\|\s*$', text, re.M),
     re.search(r'^---+\s*$', text, re.M),
     re.search(r'\(no output\)|\bN/A\b|\bkosong\b', text, re.I),
+    has_bold_label_wrappers(text),
 ]
 checks += [not any(forbidden)]
+
+if name in ("03_ops_apt", "04_search", "05_complex"):
+    checks += [not pass_claim_conflicts_with_evidence(text)]
 
 if not all(checks):
     raise SystemExit(1)

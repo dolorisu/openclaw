@@ -102,6 +102,8 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
 - `Path:` is required in every daily-ops phase block; use `/` if no tighter path is available.
 - For daily-ops/search phases, prefer fenced raw snippets for `Evidence:` over prose summaries.
 - For troubleshooting/runbook phases, require fenced raw snippets for `Evidence:`.
+- For tool readiness checks, run `command -v <tool> || /usr/sbin/<tool>` first and only then report version/status.
+- For VPS checks that depend on shell profile/API keys, run through login shell (`zsh -lic`) before claiming auth/tool readiness.
 - Keep label format consistent with colon form, not heading form (use `Progress:` not `**Progress**`).
 - Keep labels in colon form; optional emoji prefix is allowed when readability mode is desired.
 - Never wrap section labels with markdown emphasis (for example `**Fungsi:**`, `**Poin penting:**`).
@@ -111,6 +113,7 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
   - empty fenced code blocks,
   - placeholder evidence tokens (`(no output)`, `N/A`, `...`),
   - narrative evidence without any verbatim command-output snippet,
+  - `PASS` claim when evidence shows failure signals (`command not found`, `not authenticated`, `permission denied`, `error`, `failed`),
   - invented values not present in command output (for example fake PID/timestamp/status).
   - single fenced summary block that replaces required labeled task fields.
 
