@@ -39,6 +39,7 @@ class MultiBubblePatch(Patch):
     
     # Marker to detect if already patched
     SPLIT_MARKER = 'text.replace(/\\r\\n?/g, "\\n").split(/\\n\\s*\\n+/)'
+    JSON_CODEBLOCK_MARKER = 'function formatJsonCodeFences(text) {'
     
     def check(self) -> PatchStatus:
         """Check if multibubble patch is applied"""
@@ -58,13 +59,14 @@ class MultiBubblePatch(Patch):
             is_web_candidate = (
                 'const paragraphParts = rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);' in content
                 or 'paragraphParts = rawText.includes("```")' in content
+                or self.JSON_CODEBLOCK_MARKER in content
             )
             is_tg_candidate = 'const splitSource = fallbackText.replace(/\\r\\n?/g, "\\n");' in content or '__openclawNoSplit' in content
 
             file_candidate = is_deliver_candidate or is_web_candidate or is_tg_candidate
             file_patched = (
                 (is_deliver_candidate and self.SPLIT_MARKER in content)
-                or (is_web_candidate and 'paragraphParts = rawText.includes("```")' in content)
+                or (is_web_candidate and 'paragraphParts = rawText.includes("```")' in content and self.JSON_CODEBLOCK_MARKER in content)
                 or (is_tg_candidate and '__openclawNoSplit' in content)
             )
 
@@ -187,11 +189,8 @@ class MultiBubblePatch(Patch):
         try:
             content = file_path.read_text(encoding='utf-8')
             
-            # Check if already patched
-            if 'paragraphParts = rawText.includes("```")' in content:
-                print(f"  ⏭️  {file_path.name}: Already patched")
-                return "skip"
-            
+            changed = False
+
             # Find and replace paragraph splitting logic
             old_pattern = r'const paragraphParts = rawText\.split\(/\\n\\n\+/\)\.map\(\(part\) => part\.trim\(\)\)\.filter\(Boolean\);'
             
@@ -200,17 +199,120 @@ class MultiBubblePatch(Patch):
                 '\t\tconst paragraphParts = rawText.includes("```") || keepAtomicProgress ? [rawText] : '
                 'rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);'
             )
-            
-            if re.search(old_pattern, content):
-                new_content = re.sub(old_pattern, new_logic, content)
-                
+
+            new_content = content
+            if re.search(old_pattern, new_content):
+                new_content = re.sub(old_pattern, new_logic, new_content)
+                changed = True
+
+            generic_helper = (
+                'function formatJsonCodeFences(text) {\n'
+                '\tif (typeof text !== "string" || !text.includes("```")) return text;\n'
+                '\tconst braceLang = new Set(["js", "javascript", "ts", "typescript", "tsx", "jsx", "rs", "rust", "java", "c", "cpp"]);\n'
+                '\tconst countBraces = (line) => {\n'
+                '\t\tlet opens = 0;\n'
+                '\t\tlet closes = 0;\n'
+                '\t\tlet quote = null;\n'
+                '\t\tlet escaped = false;\n'
+                '\t\tfor (const ch of line) {\n'
+                '\t\t\tif (escaped) { escaped = false; continue; }\n'
+                '\t\t\tif (ch === "\\\\") { escaped = true; continue; }\n'
+                '\t\t\tif (quote) { if (ch === quote) quote = null; continue; }\n'
+                '\t\t\tif (ch === "\\\"" || ch.charCodeAt(0) === 39 || ch === "`") { quote = ch; continue; }\n'
+                '\t\t\tif (ch === "{" || ch === "[" || ch === "(") opens += 1;\n'
+                '\t\t\tif (ch === "}" || ch === "]" || ch === ")") closes += 1;\n'
+                '\t\t}\n'
+                '\t\treturn { opens, closes };\n'
+                '\t};\n'
+                '\tconst leadingClosers = (line) => {\n'
+                '\t\tconst m = line.match(/^[\\}\\]\\)]+/);\n'
+                '\t\treturn m ? m[0].length : 0;\n'
+                '\t};\n'
+                '\tconst formatBrace = (code, unit = "  ") => {\n'
+                '\t\tconst lines = String(code || "").replace(/\\r\\n?/g, "\\n").split("\\n");\n'
+                '\t\tlet depth = 0;\n'
+                '\t\tconst out = [];\n'
+                '\t\tfor (const raw of lines) {\n'
+                '\t\t\tconst t = raw.trim();\n'
+                '\t\t\tif (!t) { out.push(""); continue; }\n'
+                '\t\t\tconst level = Math.max(depth - leadingClosers(t), 0);\n'
+                '\t\t\tout.push(unit.repeat(level) + t);\n'
+                '\t\t\tconst c = countBraces(t);\n'
+                '\t\t\tdepth = Math.max(depth + c.opens - c.closes, 0);\n'
+                '\t\t}\n'
+                '\t\treturn out.join("\\n");\n'
+                '\t};\n'
+                '\tconst formatPy = (code) => /[\\{\\[]/.test(code) ? formatBrace(code, "    ") : code;\n'
+                '\tconst formatFence = (lang, body) => {\n'
+                '\t\tconst l = String(lang || "").toLowerCase();\n'
+                '\t\tconst code = String(body || "").trim();\n'
+                '\t\tif (!code) return body;\n'
+                '\t\tif (l === "json" || l === "jsonc") {\n'
+                '\t\t\ttry { return JSON.stringify(JSON.parse(code), null, 2); } catch { return body; }\n'
+                '\t\t}\n'
+                '\t\tif (braceLang.has(l)) return formatBrace(code, "  ");\n'
+                '\t\tif (l === "py" || l === "python") return formatPy(code);\n'
+                '\t\treturn body;\n'
+                '\t};\n'
+                '\treturn text.replace(/```([a-zA-Z0-9_-]*)\\n([\\s\\S]*?)\\n```/g, (full, lang, body) => "```" + lang + "\\n" + formatFence(lang, body) + "\\n```");\n'
+                '}\n'
+            )
+
+            old_helper = (
+                'function formatJsonCodeFences(text) {\n'
+                '\tif (typeof text !== "string" || !text.includes("```")) return text;\n'
+                '\treturn text.replace(/```(?:json)?\\n([\\s\\S]*?)```/g, (full, body) => {\n'
+                '\t\tconst candidate = String(body || "").trim();\n'
+                '\t\tif (!candidate) return full;\n'
+                '\t\ttry {\n'
+                '\t\t\tconst parsed = JSON.parse(candidate);\n'
+                '\t\t\treturn "```\\n" + JSON.stringify(parsed, null, 2) + "\\n```";\n'
+                '\t\t} catch {\n'
+                '\t\t\treturn full;\n'
+                '\t\t}\n'
+                '\t});\n'
+                '}\n'
+            )
+
+            if old_helper in new_content and generic_helper not in new_content:
+                new_content = new_content.replace(old_helper, generic_helper, 1)
+                changed = True
+
+            buggy_quote_check = 'if (ch === """ || ch === "\'" || ch === "`") { quote = ch; continue; }'
+            fixed_quote_check = 'if (ch === "\\\"" || ch.charCodeAt(0) === 39 || ch === "`") { quote = ch; continue; }'
+            if buggy_quote_check in new_content:
+                new_content = new_content.replace(buggy_quote_check, fixed_quote_check)
+                changed = True
+
+            if self.JSON_CODEBLOCK_MARKER not in new_content and 'async function deliverWebReply(params) {' in new_content:
+                new_content = new_content.replace('async function deliverWebReply(params) {', generic_helper + 'async function deliverWebReply(params) {', 1)
+                changed = True
+
+            if 'function formatCodeBlocks(text) {' not in new_content and self.JSON_CODEBLOCK_MARKER in new_content:
+                alias_block = (
+                    'function formatCodeBlocks(text) {\n'
+                    '\treturn formatJsonCodeFences(typeof text === "string" ? text : String(text ?? ""));\n'
+                    '}\n'
+                )
+                new_content = new_content.replace('async function deliverWebReply(params) {', alias_block + 'async function deliverWebReply(params) {', 1)
+                changed = True
+
+            old_raw_line = 'const rawText = (replyResult.text || "").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*$/gm, "$1:").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*/gm, "$1: ").replace(/^\\s*[-*_]{3,}\\s*$/gm, "").replace(/```[a-zA-Z0-9_-]+\\n/g, "```\\n").replace(/\\n{3,}/g, "\\n\\n").trim();'
+            new_raw_block = (
+                'const rawText = formatJsonCodeFences((replyResult.text || "").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*$/gm, "$1:").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*/gm, "$1: ").replace(/^\\s*[-*_]{3,}\\s*$/gm, "").replace(/```[a-zA-Z0-9_-]+\\n/g, "```\\n").replace(/\\n{3,}/g, "\\n\\n").trim());'
+            )
+            if old_raw_line in new_content and 'formatJsonCodeFences((replyResult.text || "")' not in new_content:
+                new_content = new_content.replace(old_raw_line, new_raw_block, 1)
+                changed = True
+
+            if changed:
                 self.backup_file(file_path)
                 file_path.write_text(new_content, encoding='utf-8')
                 print(f"  ✅ {file_path.name}: Patched")
                 return "patched"
-            else:
-                print(f"  ⚠️  {file_path.name}: Pattern not found (might be already patched)")
-                return "skip"
+
+            print(f"  ⏭️  {file_path.name}: Already patched")
+            return "skip"
                 
         except Exception as e:
             print(f"  ❌ {file_path.name}: {e}")
