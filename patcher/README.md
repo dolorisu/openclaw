@@ -1,75 +1,111 @@
-# OpenClaw Runtime Patcher
+# OpenClaw Unified Patcher v2.0 🚀
 
-Patch scripts in this folder target installed OpenClaw `dist` bundles and are designed to be portable across:
+**NEW!** Complete rewrite with modular plugin architecture and critical progressive mode fix.
 
-- Homebrew installs
-- nvm / mise / volta / asdf
-- npm global installs
+## What's New in v2.0
 
-Discovery order prioritizes `npm root -g` and then falls back to binary-path and common manager paths.
+### ✅ FIXED: Progressive Mode WhatsApp Delivery
 
-## Scripts
+**The problem that plagued us for months is now SOLVED!**
 
-- `patcher` (single entrypoint, mandatory)
-  - The only operator command.
-  - Orchestrates sequence: multi-bubble -> progressive mode -> WA tail guard -> WA outbound dedupe -> WA reset prompt -> restart.
+- **Before:** Bot shows "typing" but never sends messages
+- **Root cause:** Line 1727 blocker `if (info.kind !== "final") return;` dropped all progress updates
+- **After:** Messages sent in real-time with smart filtering
 
-- `modules/` (internal)
-  - Contains implementation scripts used by `patcher`.
-  - Do not run module scripts directly during normal operations.
+### ✅ Unified Architecture
 
-- `modules/apply-multibubble-patch.py`
-  - Canonical multi-bubble patch implementation.
+- Single Python package (`openclaw_patcher/`) instead of 6+ separate scripts
+- Modular patches as plugins with dependency tracking
+- Built-in rollback support
+- Clean CLI with detailed status reporting
 
-- `modules/apply-progressive.sh`
-  - Canonical progressive-updates patch implementation.
+## Quick Start
 
-- `verify-multibubble.sh`
-  - Sends real test prompts to WhatsApp and Telegram.
-  - Validates outbound message count from gateway logs.
-  - Returns pass/fail for multi-bubble behavior.
+```bash
+# Check patch status
+~/.openclaw/patcher/patcher status
 
-- `verify/wa-quality-regression.sh`
-  - Strict WhatsApp quality gate for daily engineering behavior.
-  - Runs `/reset`, smoke, fenced-block, ops, and search checks.
-  - Validates structure/evidence constraints (and still checks WA outbound delta).
-  - Supports `--complex` for an additional heavy scenario.
-  - Use `--no-strict-format` only for diagnostics.
+# Apply progressive fix (enables real-time updates!)
+~/.openclaw/patcher/patcher apply progressive
 
-- `modules/apply-wa-progress-tail-guard.py`
-  - Prevents WhatsApp progress streaming from splitting short trailing sentence fragments into a separate bubble.
-  - Skips short non-final preview updates to avoid transient duplicate/typing-only UX.
-  - Keeps multi-bubble (`\n\n`) behavior unchanged.
+# Apply multi-bubble splitting
+~/.openclaw/patcher/patcher apply multibubble
 
-## Usage
+# Apply all patches
+~/.openclaw/patcher/patcher apply --all
+```
+
+See **[README-NEW-PATCHER.md](README-NEW-PATCHER.md)** for complete documentation.
+
+## Architecture
+
+```
+patcher/
+├── openclaw_patcher/        # Python package (NEW)
+│   ├── core.py             # Patch engine
+│   ├── cli.py              # CLI interface
+│   └── patches/            # Modular patches
+│       ├── progressive.py  # ✅ WITH BLOCKER FIX
+│       └── multibubble.py  # ✅ Message splitting
+│
+├── patcher                 # Main CLI (NEW)
+├── legacy/                 # Old scripts (archived)
+│   ├── modules/            # Old patch scripts
+│   └── patcher.old         # Old orchestrator
+└── docs/                   # Documentation
+```
+
+## Migration from v1.x
+
+**Old command:**
+```bash
+~/.openclaw/patcher/patcher --progressive
+```
+
+**New command (same result, better implementation):**
+```bash
+~/.openclaw/patcher/patcher apply --all
+```
+
+Old scripts are still available in `legacy/` for reference.
+
+## Usage (v2.0)
 
 ```bash
 # 0) After `openclaw update`, patch state is reset. Re-apply immediately.
 
 # 1) Check current status
-~/.openclaw/patcher/patcher --status
+~/.openclaw/patcher/patcher status
 
-# 2) Recommended daily apply (stable WhatsApp delivery)
-~/.openclaw/patcher/patcher --force-multibubble --no-progressive
+# 2) Apply all patches (recommended - includes progressive fix!)
+~/.openclaw/patcher/patcher apply --all
 
-# 3) Optional modes
-~/.openclaw/patcher/patcher --force-multibubble
-~/.openclaw/patcher/patcher --no-restart
-~/.openclaw/patcher/patcher --progressive
-~/.openclaw/patcher/patcher --no-progressive
+# 3) Apply specific patches
+~/.openclaw/patcher/patcher apply progressive      # Real-time progress updates
+~/.openclaw/patcher/patcher apply multibubble      # Message splitting
 
-# 4) Verify patch state
-~/.openclaw/patcher/patcher --status
+# 4) Force reapply (after OpenClaw update)
+~/.openclaw/patcher/patcher apply --all --force
 
-# real end-to-end verification (sends test messages)
-~/.openclaw/patcher/verify-multibubble.sh --wa-to +6289669848875 --tg-to @rifuki
+# 5) Check specific patch
+~/.openclaw/patcher/patcher check progressive
 
-# strict WA quality gate (recommended before handoff)
-bash ~/.openclaw/patcher/verify/wa-quality-regression.sh --to +6289669848875 --timeout 300
-bash ~/.openclaw/patcher/verify/wa-quality-regression.sh --to +6289669848875 --timeout 300 --complex
+# 6) Rollback a patch (if needed)
+~/.openclaw/patcher/patcher rollback progressive
 
-# 5) If changing runtime behavior, reset chat session once
-openclaw agent --to 120363425302186820@g.us --message "/reset" --deliver --timeout 240
+# 7) Apply without gateway restart (for testing)
+~/.openclaw/patcher/patcher apply --all --no-restart
+```
+
+### Legacy Commands (still work, in legacy/)
+
+```bash
+# Old orchestrator (archived but functional)
+~/.openclaw/patcher/legacy/patcher.old --status
+~/.openclaw/patcher/legacy/patcher.old --progressive
+
+# Old verification (archived)
+~/.openclaw/patcher/legacy/verify-multibubble.sh --wa-to +6289669848875
 ```
 
 ## Direct channel smoke tests (recommended)

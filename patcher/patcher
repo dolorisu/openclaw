@@ -1,175 +1,18 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
+"""
+OpenClaw Patcher - Unified patch management system
 
-set -euo pipefail
+Thin wrapper that invokes the openclaw_patcher package.
+"""
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+import sys
+from pathlib import Path
 
-MULTIBUBBLE_SCRIPT="$SCRIPT_DIR/modules/apply-multibubble-patch.py"
-PROGRESSIVE_SCRIPT="$SCRIPT_DIR/modules/apply-progressive.sh"
-TAIL_GUARD_SCRIPT="$SCRIPT_DIR/modules/apply-wa-progress-tail-guard.py"
-OUTBOUND_DEDUPE_SCRIPT="$SCRIPT_DIR/modules/apply-wa-outbound-dedupe.py"
-RESET_PROMPT_SCRIPT="$SCRIPT_DIR/modules/apply-wa-reset-prompt.py"
+# Add patcher directory to Python path
+patcher_dir = Path(__file__).parent
+sys.path.insert(0, str(patcher_dir))
 
-MODE="apply"
-RESTART_GATEWAY=1
-FORCE_MULTIBUBBLE=0
-STRICT_MULTIBUBBLE=0
-PROGRESSIVE_MODE="enable"
+from openclaw_patcher.cli import main
 
-usage() {
-  cat <<'EOF'
-Usage:
-  patcher [--status] [--no-restart] [--force-multibubble] [--strict-multibubble]
-                      [--progressive|--no-progressive]
-
-Options:
-  --status             Show status only, do not apply patches
-  --no-restart         Skip gateway restart (apply mode only)
-  --force-multibubble  Add --force to multi-bubble patcher
-  --strict-multibubble Enable strict syntax-check mode for multi-bubble patching
-  --progressive        Enable progressive mode (default)
-  --no-progressive     Disable progressive mode (final-only replies)
-  -h, --help           Show this help
-
-Sequence (apply mode):
-  1) Multi-bubble patch (WA + Telegram + Telegram bot path)
-  2) Progressive updates patch (enable or disable)
-  3) WA progress tail guard patch (progressive mode only)
-  4) WA outbound dedupe/fence patch
-  5) WA reset prompt hardening patch
-  6) Restart gateway (unless --no-restart)
-EOF
-}
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --status)
-      MODE="status"
-      shift
-      ;;
-    --no-restart)
-      RESTART_GATEWAY=0
-      shift
-      ;;
-    --force-multibubble)
-      FORCE_MULTIBUBBLE=1
-      shift
-      ;;
-    --strict-multibubble)
-      STRICT_MULTIBUBBLE=1
-      shift
-      ;;
-    --progressive)
-      PROGRESSIVE_MODE="enable"
-      shift
-      ;;
-    --no-progressive)
-      PROGRESSIVE_MODE="disable"
-      shift
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "Unknown argument: $1" >&2
-      usage
-      exit 2
-      ;;
-  esac
-done
-
-if [[ ! -f "$MULTIBUBBLE_SCRIPT" ]]; then
-  echo "Missing script: $MULTIBUBBLE_SCRIPT" >&2
-  exit 1
-fi
-if [[ ! -f "$PROGRESSIVE_SCRIPT" ]]; then
-  echo "Missing script: $PROGRESSIVE_SCRIPT" >&2
-  exit 1
-fi
-if [[ ! -f "$TAIL_GUARD_SCRIPT" ]]; then
-  echo "Missing script: $TAIL_GUARD_SCRIPT" >&2
-  exit 1
-fi
-if [[ ! -f "$OUTBOUND_DEDUPE_SCRIPT" ]]; then
-  echo "Missing script: $OUTBOUND_DEDUPE_SCRIPT" >&2
-  exit 1
-fi
-if [[ ! -f "$RESET_PROMPT_SCRIPT" ]]; then
-  echo "Missing script: $RESET_PROMPT_SCRIPT" >&2
-  exit 1
-fi
-
-if [[ "$MODE" == "status" ]]; then
-  echo "== Multi-bubble status =="
-  python3 "$MULTIBUBBLE_SCRIPT" --status
-  echo
-  echo "== Progressive updates status =="
-  "$PROGRESSIVE_SCRIPT" --status
-  echo
-  echo "== WA tail guard status =="
-  python3 "$TAIL_GUARD_SCRIPT" --status
-  echo
-  echo "== WA outbound dedupe status =="
-  python3 "$OUTBOUND_DEDUPE_SCRIPT" --status
-  echo
-  echo "== WA reset prompt status =="
-  python3 "$RESET_PROMPT_SCRIPT" --status
-  exit 0
-fi
-
-MULTIBUBBLE_ARGS=(--channels whatsapp,telegram)
-if [[ "$STRICT_MULTIBUBBLE" -eq 1 ]]; then
-  MULTIBUBBLE_ARGS+=(--strict)
-fi
-if [[ "$FORCE_MULTIBUBBLE" -eq 1 ]]; then
-  MULTIBUBBLE_ARGS+=(--force)
-fi
-
-echo "== Step 1/6: Multi-bubble patch =="
-python3 "$MULTIBUBBLE_SCRIPT" "${MULTIBUBBLE_ARGS[@]}"
-
-echo
-echo "== Step 2/6: Progressive updates patch ($PROGRESSIVE_MODE) =="
-if [[ "$PROGRESSIVE_MODE" == "disable" ]]; then
-  "$PROGRESSIVE_SCRIPT" --disable
-else
-  "$PROGRESSIVE_SCRIPT" --enable
-fi
-
-echo
-if [[ "$PROGRESSIVE_MODE" == "disable" ]]; then
-  echo "== Step 3/6: WA progress tail guard =="
-  echo "Skipped (progressive mode disabled)."
-else
-  echo "== Step 3/6: WA progress tail guard =="
-  python3 "$TAIL_GUARD_SCRIPT" --strict
-fi
-
-echo
-echo "== Step 4/6: WA outbound dedupe/fence patch =="
-python3 "$OUTBOUND_DEDUPE_SCRIPT"
-
-echo
-echo "== Step 5/6: WA reset prompt hardening patch =="
-python3 "$RESET_PROMPT_SCRIPT"
-
-if [[ "$RESTART_GATEWAY" -eq 1 ]]; then
-  echo
-  echo "== Step 6/6: Restart gateway =="
-  if command -v openclaw >/dev/null 2>&1; then
-    openclaw gateway restart
-  elif [[ -x "$HOME/.npm-global/bin/openclaw" ]]; then
-    "$HOME/.npm-global/bin/openclaw" gateway restart
-  elif command -v systemctl >/dev/null 2>&1; then
-    systemctl restart openclaw-gateway.service
-  else
-    echo "Warning: could not find openclaw binary for gateway restart" >&2
-  fi
-else
-  echo
-  echo "Skipped gateway restart (--no-restart)."
-fi
-
-echo
-echo "Done."
+if __name__ == "__main__":
+    sys.exit(main())

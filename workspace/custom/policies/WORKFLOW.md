@@ -558,7 +558,7 @@ E: Could not open lock file /var/lib/apt/lists/lock - open (13: Permission denie
 - Generated/demo files must stay under `.openclaw`:
   - `~/.openclaw/artifacts/generated/`
   - `~/.openclaw/artifacts/scratch/`
-  - `~/.openclaw/artifacts/downloads/`
+  - `~/.openclaw/media/` (for sendable attachments)
 - Do not write generated task files to bare `~/` unless explicitly requested.
 - If user does not provide an explicit path, auto-route output by artifact type:
   - **Coding project (multi-file app/lib/service):** `~/.openclaw/artifacts/generated/projects/<slug>/`
@@ -571,6 +571,9 @@ E: Could not open lock file /var/lib/apt/lists/lock - open (13: Permission denie
   - Always state final absolute path in the response (`Path: ...`).
   - Prefer deterministic names with timestamp or task slug to avoid collisions.
   - If target filename already exists, append suffix (`-v2`, `-v3`) rather than overwrite unless user asks overwrite.
+- Attachment delivery contract:
+  - If file will be sent as WhatsApp/Telegram attachment, save under `~/.openclaw/media/` or `/tmp/openclaw/downloads/` first.
+  - Do not stage sendable media under `~/.openclaw/artifacts/*` unless runtime allowlist is explicitly patched to allow it.
 
 ## Reliability rules
 - No fake success claims.

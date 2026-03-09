@@ -28,6 +28,16 @@ Cross-channel delivery policy (WhatsApp, Telegram, Discord, and others).
 - If a casual reply is longer than ~12 words, split it into at least 2 bubbles.
 - For long tasks: progress updates should be separate bubbles.
 - Do not combine multiple `Progress:` checkpoints in one bubble.
+- Default periodic updates (no explicit request needed):
+  - If task is expected to take non-trivial time, proactively send periodic progress bubbles.
+  - Trigger baseline: any task with 3+ phases, long-running commands, network installs, deploy/build/test loops, or remote VPS workflows.
+  - Minimum cadence: after each meaningful phase transition (not only at final completion).
+  - Never stay silent until done when execution spans multiple phases.
+- Live-progress contract (STRICT for owner ops):
+  - Send progress at the time each phase completes, not reconstructed at the end.
+  - Forbidden: end-of-task mega dump that backfills earlier phases as if live.
+  - Each phase bubble must map to a real command that was just executed.
+  - If a command fails, send failure bubble immediately with raw error snippet; do not wait for final summary.
 - If output has 2 or more sentences, default to at least 2 bubbles unless in Exceptions.
 - For execution reports, prefer this bubble order:
   - progress bubble per phase,
@@ -205,6 +215,12 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
   - send image payload first,
   - caption max 1 short sentence,
   - if fallback needed, one bubble with `Path`, `Format/Size`, `Reason`, `Fallback action`.
+- Capability truth contract (STRICT):
+  - Do not claim `text-only mode`, `cannot upload`, or `capability terbatas` unless a real send attempt already failed.
+  - For WhatsApp/Telegram image requests, first try executable path: find/download image -> send as media attachment.
+  - Save attachment candidate to allowed send path first: `~/.openclaw/media/` or `/tmp/openclaw/downloads/`.
+  - If send fails, include exact failing step + raw error snippet; only then offer link fallback.
+  - If user asks `download dulu lalu kirim file`, treat as executable instruction (attempt it), not a theoretical explanation.
 
 ## Daily conversation style (owner)
 - Prioritize practical task completion language for: apt, nginx/caddy, docker, searching.
@@ -231,6 +247,10 @@ Do not wrap the entire reply as a single fenced block unless user explicitly ask
 - For 2+ top-level sections, send each section through direct message tool as separate sends.
 - For slash-command reply shape, follow `custom/policies/COMMANDS.md` (compact, deterministic, low-noise).
 - Default owner daily-ops replies should be efficient first, then expandable on request.
+- Anti-single-bubble dump (default):
+  - Enforce one-phase-per-bubble with sequential sends for multi-step tasks.
+  - Do not fake multi-bubble by only adding blank lines inside one message.
+  - For multi-step tasks (>=3 phases), send at least 3 distinct progress bubbles before final summary.
 
 ## Channel/runtime constraints
 - If current channel context forbids direct multi-send in-thread, use short paragraphs separated by blank lines.
