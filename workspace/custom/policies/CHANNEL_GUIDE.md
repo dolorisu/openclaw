@@ -20,7 +20,7 @@ Cross-channel delivery policy (WhatsApp, Telegram, Discord, and others).
 ## Primary objective
 - Deliver readable multi-bubble responses by default.
 
-## Default behavior (all channels)
+## Owner override: file-creation progress format (STRICT)For owner requests that create multiple files, progress must be sent immediately after each file is created (no burst at end) using this exact structure:⏳ Progress: File `filename.ext` selesai dibuat📁 Path: `/absolute/path/to/filename.ext`📋 Evidence:• `Successfully wrote X bytes` or other tool output✅ Hasil: BerhasilCRITICAL RULES:1. Send ONE progress message PER file IMMEDIATELY after creation2. DO NOT batch - send progress AS SOON AS each file completes3. Filename and path MUST use backticks (inline code formatting)4. Evidence MUST use backticks (inline code formatting)5. NO index numbers in filename6. Keep exact label orderExample (CORRECT):⏳ Progress: File `test1.py` selesai dibuat📁 Path: `/home/rifuki/.openclaw/workspace/test1.py`📋 Evidence:• `Successfully wrote 16 bytes`✅ Hasil: BerhasilExample (WRONG):⏳ Progress: File `test1.py 1` selesai dibuat  ← NO INDEX!📁 Path: /home/rifuki/.openclaw/workspace/test1.py  ← NEED BACKTICKS!## Default behavior
 - Conversational replies: one short sentence per bubble. Separate with blank line (`\n\n`).
 - Example: "Sentence 1.\n\nSentence 2.\n\nSentence 3."
 - Keep each bubble focused; avoid long mixed-topic bubbles.

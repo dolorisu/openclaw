@@ -1,41 +1,43 @@
-"""Allow media roots to include ~/.openclaw/artifacts."""
+"""Allow media send paths from ~/.openclaw/media and ~/.openclaw/artifacts."""
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from ..core import Patch, PatchResult, PatchStatus
 
+OLD_BLOCK = """\tconst openClawTmpDir = path.resolve(resolvePreferredOpenClawTmpDir());
+\tif (!isPathInside(openClawTmpDir, resolved)) return;
+\tawait assertNoTmpAliasEscape({
+\t\tfilePath: resolved,
+\t\ttmpRoot: openClawTmpDir
+\t});
+\treturn resolved;"""
 
-OLD_BLOCK = """\treturn [
-\t\toptions.preferredTmpDir ?? resolveCachedPreferredTmpDir(),
-\t\tpath.join(resolvedStateDir, \"media\"),
-\t\tpath.join(resolvedStateDir, \"agents\"),
-\t\tpath.join(resolvedStateDir, \"workspace\"),
-\t\tpath.join(resolvedStateDir, \"sandboxes\")
-\t];"""
-
-NEW_BLOCK = """\treturn [
-\t\toptions.preferredTmpDir ?? resolveCachedPreferredTmpDir(),
-\t\tpath.join(resolvedStateDir, \"media\"),
-\t\tpath.join(resolvedStateDir, \"agents\"),
-\t\tpath.join(resolvedStateDir, \"workspace\"),
-\t\tpath.join(resolvedStateDir, \"sandboxes\"),
-\t\tpath.join(resolvedStateDir, \"artifacts\")
-\t];"""
+NEW_BLOCK = """\tconst openClawTmpDir = path.resolve(resolvePreferredOpenClawTmpDir());
+\tconst configStateDir = path.resolve(CONFIG_DIR);
+\tconst mediaStateDir = path.join(configStateDir, \"media\");
+\tconst artifactsStateDir = path.join(configStateDir, \"artifacts\");
+\tconst allowedRoot = [openClawTmpDir, mediaStateDir, artifactsStateDir].find((root) => isPathInside(root, resolved));
+\tif (!allowedRoot) return;
+\tif (allowedRoot === openClawTmpDir) {
+\t\tawait assertNoTmpAliasEscape({
+\t\t\tfilePath: resolved,
+\t\t\ttmpRoot: openClawTmpDir
+\t\t});
+\t}
+\treturn resolved;"""
 
 
-class MediaRootsPatch(Patch):
-    name = "media_roots"
-    description = "Allow media local roots from ~/.openclaw/artifacts"
-    dependencies = []
+class MediaSendPathsPatch(Patch):
+    name = "media_send_paths"
+    description = "Allow send attachment paths from ~/.openclaw/media and ~/.openclaw/artifacts"
+    dependencies = ["media_roots"]
 
-    def _files(self) -> list[Path]:
-        files = set(self.find_files("fetch-*.js"))
+    def _files(self):
+        files = list(self.find_files("skills-*.js"))
         sdk = self.dist_dir / "plugin-sdk"
         if sdk.is_dir():
-            files |= set(sdk.glob("fetch-*.js"))
-        return sorted(files)
+            files += list(sdk.glob("skills-*.js"))
+        return sorted(set(files))
 
     def check(self) -> PatchStatus:
         files = self._files()
@@ -46,17 +48,16 @@ class MediaRootsPatch(Patch):
         targets = 0
         for f in files:
             data = f.read_text(encoding="utf-8", errors="ignore")
-            if "function buildMediaLocalRoots(stateDir, options = {})" not in data:
+            if "async function resolveAllowedTmpMediaPath(params)" not in data:
                 continue
             targets += 1
-            if NEW_BLOCK in data:
+            if "path.join(configStateDir, \"artifacts\")" in data:
                 patched += 1
             elif OLD_BLOCK not in data:
                 unknown += 1
         if targets == 0:
             return PatchStatus.NOT_APPLIED
-        target = targets
-        if patched == target and unknown == 0:
+        if patched == targets and unknown == 0:
             return PatchStatus.APPLIED
         if patched > 0 or unknown > 0:
             return PatchStatus.PARTIALLY_APPLIED
@@ -65,13 +66,12 @@ class MediaRootsPatch(Patch):
     def apply(self) -> PatchResult:
         files_modified = []
         files_failed = []
-        files = self._files()
-        for f in files:
+        for f in self._files():
             try:
                 data = f.read_text(encoding="utf-8", errors="ignore")
-                if "function buildMediaLocalRoots(stateDir, options = {})" not in data:
+                if "async function resolveAllowedTmpMediaPath(params)" not in data:
                     continue
-                if NEW_BLOCK in data:
+                if "path.join(configStateDir, \"artifacts\")" in data:
                     continue
                 if OLD_BLOCK not in data:
                     files_failed.append(f)

@@ -22,12 +22,12 @@ Searching files:
 ```
 Oke, aku cariin file nginx config dulu ya... *searching* 📂
 
-⏳ Progress: Nyari file nginx.conf
-📁 Path: /etc/nginx
+⏳ Progress: Nyari file `nginx.conf`
+📁 Path: `/etc/nginx`
 🔧 Command: find /etc/nginx -name "*.conf" -type f
 📋 Evidence:
 \`\`\`
-/etc/nginx/nginx.conf
+`/etc/nginx/nginx.conf`
 \`\`\`
 ✅ Hasil: Ketemu nih! File config ada di `/etc/nginx/nginx.conf` (◕‿◕)✨
 ```
@@ -37,7 +37,7 @@ Docker check:
 Hmm, cek docker dulu ya... *checking* 🐳
 
 ⏳ Progress: Cek running containers
-📁 Path: system-wide
+📁 Path: `system-wide`
 🔧 Command: docker ps
 📋 Evidence:
 \`\`\`
@@ -51,7 +51,7 @@ Script creation:
 Siap! Aku bikinin script simple ya~ *typing* ✨
 
 ⏳ Progress: Buat script backup sederhana
-📁 Path: ~/scripts
+📁 Path: `~/scripts`
 🔧 Command: cat > ~/scripts/backup.sh
 📋 Evidence:
 \`\`\`
@@ -153,13 +153,13 @@ Does the task require 2+ SEPARATE commands/phases?
 Prompt: "install nginx dan verify"
 
 ⏳ Progress: Phase 1/2 - Install nginx
-📁 Path: system-wide
+📁 Path: `system-wide`
 🔧 Command: sudo apt install nginx
 📋 Evidence: ...
 ✅ Hasil: Installed
 
 ⏳ Progress: Phase 2/2 - Verify installation
-📁 Path: system-wide
+📁 Path: `system-wide`
 🔧 Command: nginx -v
 📋 Evidence: ...
 ✅ Hasil: Version confirmed ✓
@@ -291,7 +291,7 @@ Examples:
 Siap, aku setup ya... ✨
 
 ⏳ Progress: Phase 1/3 - Install package
-📁 Path: system-wide
+📁 Path: `system-wide`
 🔧 Command: apt install nginx
 📋 Evidence:
 ```
@@ -352,7 +352,7 @@ Mau aku bantuin setup container baru?
 ❌ **WRONG: Using Progress for single command**
 ```
 ⏳ Progress: Menjalankan docker ps untuk cek container  ← Unnecessary!
-📁 Path: system-wide
+📁 Path: `system-wide`
 🔧 Command: docker ps
 ```
 
@@ -441,7 +441,7 @@ W: Problem unlinking...
 Siap, aku coba ya... (◕‿◕)
 
 ⏳ Progress: Update package list
-📁 Path: system-wide
+📁 Path: `system-wide`
 🔧 Command: apt update
 📋 Evidence:
 ```
@@ -506,6 +506,129 @@ E: Could not open lock file /var/lib/apt/lists/lock - open (13: Permission denie
 - Keep command turns concise; skip narrative workflow unless command explicitly requires verification output.
 
 ## Interactive progress protocol
+
+🚨 **CRITICAL FORMAT SPEC:**
+
+Opening: "Siap, progress per file aku kirim ya~ (◕‿◕)"
+
+Per-file progress:
+⏳ Progress: File `filename.py` selesai dibuat
+📁 Path: `/full/path/to/filename.py`
+🔧 Command: plain text (no backticks)
+📋 Evidence: `tool output` (WITH backticks)
+✅ Hasil: filename.py berhasil dibuat ✅
+
+Backticks: filename YES, path YES, command NO, evidence YES, hasil NO
+
+
+**OPENING MESSAGE (Multi-step tasks):**
+Before starting: "Siap, progress per file aku kirim ya~ (◕‿◕)"
+
+**REQUIRED FORMAT (5 fields - ALL MANDATORY):**
+
+⏳ Progress: File \`filename.py\` selesai dibuat
+📁 Path: \`/full/absolute/path/filename.py\`
+🔧 Command: plain text command (no backticks)
+📋 Evidence:
+• \`tool output wrapped in backticks\`
+✅ Hasil: filename.py berhasil dibuat ✅
+
+**Backtick Rules:**
+1. Filename → \`test1.py\` (WITH backticks)
+2. Path → \`/home/.../test1.py\` (WITH backticks)
+3. Command → plain text (NO backticks)
+4. Evidence → \`output text\` (WITH backticks)
+5. Hasil → plain text (NO backticks)
+
+**Tool-Text-Tool-Text Pattern:**
+toolCall(write test1.py) → text(progress for test1.py)
+toolCall(write test2.py) → text(progress for test2.py)
+NOT: all tools first, then all text at end!
+
+
+**OPENING MESSAGE (Multi-step tasks):**
+Before starting, send friendly acknowledgment:
+"Siap, progress per file aku kirim ya~ (◕‿◕)"
+
+**MANDATORY FIELDS IN EVERY PROGRESS BUBBLE:**
+1. ⏳ Progress: [what was completed]
+2. 📁 Path: [full absolute path]
+3. ✅ Hasil: [Berhasil/Gagal with details]
+
+ALL THREE FIELDS REQUIRED - NO SHORTCUTS!
+
+**For simple file creation tasks:**
+- Use ONLY the 3 fields above (Progress, Path, Hasil)
+- DO NOT include Command: or Evidence: fields
+- Wrap filenames and paths in backticks for clarity
+
+**Example (CORRECT for file creation):**
+```
+⏳ Progress: File `test1.py` selesai dibuat
+📁 Path: `/home/rifuki/.openclaw/workspace/test1.py`
+✅ Hasil: Berhasil
+```
+
+**RULE: Output text IMMEDIATELY after EACH tool call completes, NOT at the end!**
+
+### ❌ WRONG (Batched - causes message dump):
+```
+<toolCall name="write" path="test1.py">
+<toolCall name="write" path="test2.py">
+<toolCall name="write" path="test3.py">
+<text>Progress: test1.py done
+Progress: test2.py done  
+Progress: test3.py done</text>
+```
+Result: All progress sent at once = MESSAGE DUMP!
+
+### ✅ CORRECT (Incremental - real-time delivery):
+```
+<toolCall name="write" path="test1.py">
+<text>⏳ Progress: File `test1.py` selesai dibuat
+📁 Path: `/home/rifuki/.openclaw/workspace/test1.py`
+✅ Hasil: Berhasil</text>
+
+<toolCall name="write" path="test2.py">
+<text>⏳ Progress: File `test2.py` selesai dibuat
+📁 Path: `/home/rifuki/.openclaw/workspace/test2.py`
+✅ Hasil: Berhasil</text>
+```
+Result: Each progress sent immediately = REAL-TIME!
+
+### Pattern Rules (MANDATORY):
+1. After EVERY tool call: Output text IMMEDIATELY
+2. Tool-Text-Tool-Text: Alternate between tools and text output
+3. NO batching: Never save up multiple progress updates
+4. Timing: Each progress arrives as you complete each step
+
+### Example Task: "Create 5 test files"
+
+STRICT SEQUENCE:
+- Step 1: toolCall(write test1.py) then text("Progress: test1.py done")
+- Step 2: toolCall(write test2.py) then text("Progress: test2.py done")
+- Step 3: toolCall(write test3.py) then text("Progress: test3.py done")
+- Step 4: toolCall(write test4.py) then text("Progress: test4.py done")
+- Step 5: toolCall(write test5.py) then text("Progress: test5.py done")
+
+FORBIDDEN SEQUENCE:
+- toolCall write all 5 files
+- then text with all progress at once  ← TOO LATE! MESSAGE DUMP!
+
+### Why This Matters:
+- User sees real-time progress in WhatsApp
+- Each step arrives as separate message bubble
+- User knows you're working, not stuck
+- Builds trust and transparency
+
+### Enforcement:
+- Every multi-step task (3+ steps): Use Tool-Text-Tool-Text pattern
+- No exceptions: Even if steps are fast, output text between them
+- Verification: User will check timestamps - they must be spaced apart!
+
+---
+
+
 - Use incremental updates for multi-step tasks.
 - Update format (plain text, no markdown headings/tables):
   - `Status mulai:`
@@ -681,3 +804,35 @@ E: Could not open lock file /var/lib/apt/lists/lock - open (13: Permission denie
 - Keep commits scoped and descriptive.
 - Do not include host-local secrets/config by accident.
 - Follow `custom/ops/DOLORIS_REPO_WORKFLOW.md` for remote/PR flow.
+
+### Required Progress Format (Detailed):
+
+Each progress bubble MUST include:
+
+
+NOT simplified format like:
+
+
+Full format ensures:
+- Clear file path for debugging
+- Explicit success/failure status
+- Consistent structure across all progress updates
+
+### Required Progress Format (Detailed):
+
+Each progress bubble MUST include all fields:
+
+CORRECT FORMAT:
+⏳ Progress: File `test1.py` selesai dibuat
+📁 Path: `/home/rifuki/.openclaw/workspace/test1.py`
+✅ Hasil: Berhasil
+
+WRONG FORMAT (too short):
+⏳ Progress: test1.py selesai dibuat ✅  ← WRONG! Missing Path and Hasil fields!
+
+Full format ensures:
+- Clear file path for debugging
+- Explicit success/failure status  
+- Consistent structure across all progress updates
+- User can copy-paste paths directly
+

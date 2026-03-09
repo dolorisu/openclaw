@@ -13,6 +13,7 @@ from .tail_guard import TailGuardPatch
 from .outbound_dedupe import OutboundDedupePatch
 from .reset_prompt import ResetPromptPatch
 from .media_roots import MediaRootsPatch
+from .media_send_paths import MediaSendPathsPatch
 
 # All available patches
 ALL_PATCHES = [
@@ -22,6 +23,7 @@ ALL_PATCHES = [
     OutboundDedupePatch,
     ResetPromptPatch,
     MediaRootsPatch,
+    MediaSendPathsPatch,
 ]
 
 __all__ = [
@@ -32,4 +34,5 @@ __all__ = [
     "OutboundDedupePatch",
     "ResetPromptPatch",
     "MediaRootsPatch",
+    "MediaSendPathsPatch",
 ]

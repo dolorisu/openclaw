@@ -46,17 +46,27 @@ class MultiBubblePatch(Patch):
         all_files = []
         for pattern in self.DELIVER_FILES + self.WEB_FILES + self.TELEGRAM_FILES:
             all_files.extend(self.find_files(pattern))
-        
+
         if not all_files:
             return PatchStatus.NOT_APPLIED
-        
+
         patched_count = 0
+        candidate_count = 0
         for f in all_files:
             content = f.read_text(encoding='utf-8', errors='ignore')
+            if (
+                self.SPLIT_MARKER in content
+                or 'const sendTextChunks = async (text, overrides) => {' in content
+                or 'const paragraphParts = rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);' in content
+                or 'const splitSource = fallbackText.replace(/\\r\\n?/g, "\\n");' in content
+            ):
+                candidate_count += 1
             if self.SPLIT_MARKER in content:
                 patched_count += 1
-        
-        if patched_count == len(all_files):
+
+        if candidate_count == 0:
+            return PatchStatus.NOT_APPLIED
+        if patched_count == candidate_count:
             return PatchStatus.APPLIED
         elif patched_count > 0:
             return PatchStatus.PARTIALLY_APPLIED
@@ -72,26 +82,29 @@ class MultiBubblePatch(Patch):
         # Patch deliver-*.js files
         print("📝 Patching deliver-*.js files...")
         for f in self.find_files("deliver-*.js"):
-            if self._patch_deliver_file(f):
+            result = self._patch_deliver_file(f)
+            if result == "patched":
                 files_modified.append(f)
-            else:
+            elif result == "failed":
                 files_failed.append(f)
         
         # Patch web-*.js files  
         print("📝 Patching web/channel-web files...")
         for pattern in self.WEB_FILES:
             for f in self.find_files(pattern):
-                if self._patch_web_file(f):
+                result = self._patch_web_file(f)
+                if result == "patched":
                     files_modified.append(f)
-                else:
+                elif result == "failed":
                     files_failed.append(f)
         
         # Patch Telegram files
         print("📝 Patching Telegram files...")
         for f in self.find_files("pi-embedded-*.js"):
-            if self._patch_telegram_file(f):
+            result = self._patch_telegram_file(f)
+            if result == "patched":
                 files_modified.append(f)
-            else:
+            elif result == "failed":
                 files_failed.append(f)
         
         if files_failed:
@@ -111,7 +124,7 @@ class MultiBubblePatch(Patch):
             message=message
         )
     
-    def _patch_deliver_file(self, file_path: Path) -> bool:
+    def _patch_deliver_file(self, file_path: Path) -> str:
         """Patch deliver-*.js file"""
         try:
             content = file_path.read_text(encoding='utf-8')
@@ -119,7 +132,7 @@ class MultiBubblePatch(Patch):
             # Check if already patched
             if self.SPLIT_MARKER in content:
                 print(f"  ⏭️  {file_path.name}: Already patched")
-                return True
+                return "skip"
             
             # Find the sendTextChunks function
             pattern = re.compile(
@@ -130,7 +143,7 @@ class MultiBubblePatch(Patch):
             match = pattern.search(content)
             if not match:
                 print(f"  ❌ {file_path.name}: Pattern not found")
-                return False
+                return "skip"
             
             indent = match.group(1)
             
@@ -154,13 +167,13 @@ class MultiBubblePatch(Patch):
             self.backup_file(file_path)
             file_path.write_text(new_content, encoding='utf-8')
             print(f"  ✅ {file_path.name}: Patched")
-            return True
+            return "patched"
             
         except Exception as e:
             print(f"  ❌ {file_path.name}: {e}")
-            return False
+            return "failed"
     
-    def _patch_web_file(self, file_path: Path) -> bool:
+    def _patch_web_file(self, file_path: Path) -> str:
         """Patch web-*.js / channel-web-*.js file"""
         try:
             content = file_path.read_text(encoding='utf-8')
@@ -168,7 +181,7 @@ class MultiBubblePatch(Patch):
             # Check if already patched
             if 'paragraphParts = rawText.includes("```")' in content:
                 print(f"  ⏭️  {file_path.name}: Already patched")
-                return True
+                return "skip"
             
             # Find and replace paragraph splitting logic
             old_pattern = r'const paragraphParts = rawText\.split\(/\\n\\n\+/\)\.map\(\(part\) => part\.trim\(\)\)\.filter\(Boolean\);'
@@ -185,16 +198,16 @@ class MultiBubblePatch(Patch):
                 self.backup_file(file_path)
                 file_path.write_text(new_content, encoding='utf-8')
                 print(f"  ✅ {file_path.name}: Patched")
-                return True
+                return "patched"
             else:
                 print(f"  ⚠️  {file_path.name}: Pattern not found (might be already patched)")
-                return True  # Consider success if pattern not found (might be newer version)
+                return "skip"
                 
         except Exception as e:
             print(f"  ❌ {file_path.name}: {e}")
-            return False
+            return "failed"
     
-    def _patch_telegram_file(self, file_path: Path) -> bool:
+    def _patch_telegram_file(self, file_path: Path) -> str:
         """Patch Telegram pi-embedded-*.js file"""
         try:
             content = file_path.read_text(encoding='utf-8')
@@ -202,14 +215,14 @@ class MultiBubblePatch(Patch):
             # Check if already patched
             if '__openclawNoSplit' in content:
                 print(f"  ⏭️  {file_path.name}: Already patched")
-                return True
+                return "skip"
             
             # Find sendTelegramText function
             marker = 'const splitSource = fallbackText.replace(/\\r\\n?/g, "\\n");'
             
             if marker not in content:
                 print(f"  ⚠️  {file_path.name}: Marker not found")
-                return False
+                return "skip"
             
             # Build split block
             split_block = """\tconst splitSource = fallbackText.replace(/\\r\\n?/g, "\\n");
@@ -239,11 +252,11 @@ class MultiBubblePatch(Patch):
                 self.backup_file(file_path)
                 file_path.write_text(new_content, encoding='utf-8')
                 print(f"  ✅ {file_path.name}: Patched")
-                return True
+                return "patched"
             else:
                 print(f"  ⚠️  {file_path.name}: No changes")
-                return False
+                return "skip"
                 
         except Exception as e:
             print(f"  ❌ {file_path.name}: {e}")
-            return False
+            return "failed"

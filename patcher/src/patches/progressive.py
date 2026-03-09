@@ -55,8 +55,12 @@ class ProgressivePatch(Patch):
             return PatchStatus.NOT_APPLIED
         
         streaming_enabled_count = 0
+        streaming_candidates = 0
         for f in streaming_files:
             content = f.read_text(encoding='utf-8', errors='ignore')
+            if 'disableBlockStreaming:' not in content:
+                continue
+            streaming_candidates += 1
             # Check if disableBlockStreaming is set to false
             if re.search(r'disableBlockStreaming:\s*false', content):
                 streaming_enabled_count += 1
@@ -67,8 +71,12 @@ class ProgressivePatch(Patch):
             deliver_files.extend(self.find_files(pattern))
         
         blocker_removed_count = 0
+        deliver_candidates = 0
         for f in deliver_files:
             content = f.read_text(encoding='utf-8', errors='ignore')
+            if 'deliver: async' not in content:
+                continue
+            deliver_candidates += 1
             # Check if the blocker is removed
             # OLD: if (info.kind !== "final") return;
             # NEW: Should have isProgressUpdate or similar logic
@@ -81,7 +89,14 @@ class ProgressivePatch(Patch):
                     blocker_removed_count += 1
         
         # Determine status
-        if streaming_enabled_count == len(streaming_files) and blocker_removed_count == len(deliver_files):
+        if streaming_candidates == 0:
+            streaming_candidates = 1
+            streaming_enabled_count = 1
+        if deliver_candidates == 0:
+            deliver_candidates = 1
+            blocker_removed_count = 1
+
+        if streaming_enabled_count == streaming_candidates and blocker_removed_count == deliver_candidates:
             return PatchStatus.APPLIED
         elif streaming_enabled_count > 0 or blocker_removed_count > 0:
             return PatchStatus.PARTIALLY_APPLIED
