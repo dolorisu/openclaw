@@ -1,132 +1,261 @@
-# OpenClaw Unified Patcher v2.0 🚀
+# OpenClaw Patcher v2.0
 
-**NEW!** Complete rewrite with modular plugin architecture and critical progressive mode fix.
+Unified patch management system with modular architecture.
 
-## What's New in v2.0
+## 🎯 What This Does
 
-### ✅ FIXED: Progressive Mode WhatsApp Delivery
+Patches OpenClaw runtime to enable:
+- **Progressive updates**: Real-time progress messages (no more "typing forever")
+- **Multi-bubble**: Split messages on `\n\n` for better readability
+- **Channel fixes**: WhatsApp & Telegram improvements
 
-**The problem that plagued us for months is now SOLVED!**
-
-- **Before:** Bot shows "typing" but never sends messages
-- **Root cause:** Line 1727 blocker `if (info.kind !== "final") return;` dropped all progress updates
-- **After:** Messages sent in real-time with smart filtering
-
-### ✅ Unified Architecture
-
-- Single Python package (`openclaw_patcher/`) instead of 6+ separate scripts
-- Modular patches as plugins with dependency tracking
-- Built-in rollback support
-- Clean CLI with detailed status reporting
-
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
-# Check patch status
+# Check status
 ~/.openclaw/patcher/patcher status
 
-# Apply progressive fix (enables real-time updates!)
-~/.openclaw/patcher/patcher apply progressive
-
-# Apply multi-bubble splitting
-~/.openclaw/patcher/patcher apply multibubble
-
-# Apply all patches
+# Apply all patches (recommended after openclaw update)
 ~/.openclaw/patcher/patcher apply --all
+
+# Apply specific patch
+~/.openclaw/patcher/patcher apply progressive
 ```
 
-See **[README-NEW-PATCHER.md](README-NEW-PATCHER.md)** for complete documentation.
+## 📋 Available Commands
 
-## Architecture
+```bash
+patcher status              # Show patch status
+patcher status -v           # Verbose (with descriptions)
+
+patcher apply --all         # Apply all patches
+patcher apply PATCH_NAME    # Apply specific patch
+patcher apply --all --force # Force reapply
+
+patcher check PATCH_NAME    # Check patch details
+patcher rollback PATCH_NAME # Rollback a patch
+```
+
+## 🔧 Available Patches
+
+| Patch | Status | Description |
+|-------|--------|-------------|
+| **progressive** | ✅ Ready | Real-time progress updates + blocker fix |
+| **multibubble** | ✅ Ready | Split messages on `\n\n` |
+| tail_guard | 🚧 Stub | Prevent short fragment splitting |
+| outbound_dedupe | 🚧 Stub | Deduplicate messages |
+| reset_prompt | 🚧 Stub | Harden `/reset` command |
+| media_roots | 🚧 Stub | Allow local media files |
+
+## ⭐ What's New in v2.0
+
+### FIXED: Progressive Mode Delivery Issue
+
+**The problem:**
+- Bot showed "typing" indicator
+- No messages sent (dropped silently)
+- Progress updates never arrived
+
+**Root cause found:**
+```javascript
+// Line 1727 in channel-web-*.js
+deliver: async (payload, info) => {
+    if (info.kind !== "final") return;  // ← BLOCKER!
+    // ... delivery code
+}
+```
+
+**The fix:**
+- Removed blocker
+- Added smart filtering (skip empty/tiny updates)
+- Messages now sent in real-time
+
+### Unified Architecture
+
+**Before (v1.x):**
+- 6+ separate scripts (2338 lines)
+- Manual dependency tracking
+- No rollback support
+- Hard to maintain
+
+**After (v2.0):**
+- Single Python package (`openclaw_patcher/`)
+- Automatic dependency resolution
+- Built-in rollback
+- Clean modular design
+
+## 📁 Structure
 
 ```
 patcher/
-├── openclaw_patcher/        # Python package (NEW)
+├── src/                    # Python package
+│   ├── __init__.py
+│   ├── __main__.py         # python -m src
 │   ├── core.py             # Patch engine
 │   ├── cli.py              # CLI interface
-│   └── patches/            # Modular patches
-│       ├── progressive.py  # ✅ WITH BLOCKER FIX
+│   └── patches/            # Patch plugins
+│       ├── progressive.py  # ✅ With blocker fix
 │       └── multibubble.py  # ✅ Message splitting
 │
-├── patcher                 # Main CLI (NEW)
-├── legacy/                 # Old scripts (archived)
-│   ├── modules/            # Old patch scripts
-│   └── patcher.old         # Old orchestrator
-└── docs/                   # Documentation
+├── patcher                 # Convenience wrapper
+├── legacy/                 # Archived v1.x scripts
+└── docs/                   # Technical documentation
 ```
 
-## Migration from v1.x
+## 🔄 After OpenClaw Update
 
-**Old command:**
-```bash
-~/.openclaw/patcher/patcher --progressive
-```
-
-**New command (same result, better implementation):**
-```bash
-~/.openclaw/patcher/patcher apply --all
-```
-
-Old scripts are still available in `legacy/` for reference.
-
-## Usage (v2.0)
+OpenClaw updates reset patches. Re-apply immediately:
 
 ```bash
-# 0) After `openclaw update`, patch state is reset. Re-apply immediately.
+# 1. Update OpenClaw
+npm update -g openclaw  # or: openclaw update
 
-# 1) Check current status
-~/.openclaw/patcher/patcher status
-
-# 2) Apply all patches (recommended - includes progressive fix!)
-~/.openclaw/patcher/patcher apply --all
-
-# 3) Apply specific patches
-~/.openclaw/patcher/patcher apply progressive      # Real-time progress updates
-~/.openclaw/patcher/patcher apply multibubble      # Message splitting
-
-# 4) Force reapply (after OpenClaw update)
+# 2. Re-apply patches
 ~/.openclaw/patcher/patcher apply --all --force
 
-# 5) Check specific patch
-~/.openclaw/patcher/patcher check progressive
-
-# 6) Rollback a patch (if needed)
-~/.openclaw/patcher/patcher rollback progressive
-
-# 7) Apply without gateway restart (for testing)
-~/.openclaw/patcher/patcher apply --all --no-restart
+# 3. Restart gateway
+systemctl --user restart openclaw-gateway  # or: openclaw gateway restart
 ```
 
-### Legacy Commands (still work, in legacy/)
+## 🧪 Testing Progressive Fix
 
 ```bash
-# Old orchestrator (archived but functional)
+# Apply the fix
+patcher apply progressive
+
+# Test with real message
+openclaw agent --channel whatsapp --to +YOUR_NUMBER \
+  --message "Create 3 test files, show progress after each" \
+  --deliver
+
+# Expected: Progress messages arrive in real-time (not batched at end)
+```
+
+## 🐛 Troubleshooting
+
+### Patch shows "partially_applied"
+
+Some files may not match expected patterns (different OpenClaw version). This is usually fine if core files are patched.
+
+Check details:
+```bash
+patcher apply progressive --force  # See which files were patched
+```
+
+### "Dependency not met"
+
+Some patches require others first:
+
+```bash
+# tail_guard requires progressive
+patcher apply progressive
+patcher apply tail_guard
+```
+
+### "OpenClaw directory not found"
+
+Specify manually:
+```bash
+patcher --openclaw-dir /path/to/openclaw apply --all
+```
+
+## 📦 Direct Execution
+
+The patcher is a Python package and can be executed directly:
+
+```bash
+# Using wrapper (recommended)
+~/.openclaw/patcher/patcher status
+
+# Direct execution
+cd ~/.openclaw/patcher
+python3 -m src status
+
+# Both work identically
+```
+
+## 🔙 Rollback to v1.x
+
+Old scripts are archived in `legacy/`:
+
+```bash
+# Use old orchestrator
 ~/.openclaw/patcher/legacy/patcher.old --status
 ~/.openclaw/patcher/legacy/patcher.old --progressive
 
-# Old verification (archived)
-~/.openclaw/patcher/legacy/verify-multibubble.sh --wa-to +6289669848875
+# Old patches still functional (reference only)
 ```
 
-## Direct channel smoke tests (recommended)
+## 🛠️ For Developers
+
+### Adding a New Patch
+
+1. Create `src/patches/your_patch.py`:
+
+```python
+from ..core import Patch, PatchStatus, PatchResult
+
+class YourPatch(Patch):
+    name = "your_patch"
+    description = "What it does"
+    dependencies = []  # or ["other_patch"]
+    
+    def check(self) -> PatchStatus:
+        # Check if applied
+        ...
+    
+    def apply(self) -> PatchResult:
+        # Apply the patch
+        ...
+```
+
+2. Register in `src/patches/__init__.py`:
+
+```python
+from .your_patch import YourPatch
+
+ALL_PATCHES = [
+    ...,
+    YourPatch,
+]
+```
+
+3. Test:
 
 ```bash
-# WhatsApp direct/group
-openclaw agent --channel whatsapp --to 120363425302186820@g.us --message "WA smoke: reply 1 line" --deliver --timeout 240
-
-# Telegram direct (prefer numeric user ID)
-openclaw agent --channel telegram --to 849612359 --message "TG smoke: reply 1 line" --deliver --timeout 240
+patcher check your_patch
+patcher apply your_patch
 ```
 
-Notes:
-- Telegram `--to` is more reliable with numeric user ID than `@username`.
-- For multi-bubble proof on Telegram, ask explicit 3-paragraph response with markers (`BUBBLE-1/2/3`).
+## 📚 Documentation
 
-### Recommended defaults
-- Daily/stable mode (recommended): `--no-progressive`
-- Use `--progressive` only when you explicitly need live streaming previews and can tolerate occasional WhatsApp delivery flakiness.
-- Always use the orchestrator entrypoint (`patcher`), not direct module scripts.
+- **Technical deep dive**: `docs/PROGRESSIVE_UPDATES.md`
+- **Testing guide**: `docs/TESTING_GUIDE.md`
+- **Deployment**: `docs/DEPLOYMENT_CHECKLIST.md`
+- **Legacy docs**: `legacy/ACTIVE.md`, `legacy/PATCHES.md`
 
-Use `~/.openclaw/patcher/` as the only script location and prefer `patcher` as the default entrypoint.
+## 📝 Version History
 
-Extended docs moved from `patches/` are available in `~/.openclaw/patcher/PATCHES.md`, `~/.openclaw/patcher/docs/`, and `~/.openclaw/patcher/archive/`.
+### v2.0.0 (2026-03-09)
+- Complete rewrite with modular architecture
+- **FIXED** progressive mode WhatsApp delivery (line 1727 blocker)
+- Single Python package replaces 6+ scripts
+- Built-in dependency tracking and rollback
+- Clean CLI interface
+
+### v1.x (archived in `legacy/`)
+- Original bash/python scripts
+- Manual orchestration
+- No rollback support
+
+## 🙏 Credits
+
+- **Root cause analysis**: Deep investigation found line 1727 blocker
+- **Unified architecture**: Modular plugin system
+- **Progressive fix**: First version to actually solve delivery issue
+
+---
+
+**Author**: dolorisu <misumi.doloris@gmail.com>  
+**Co-author**: rifuki <rifuki.dev@gmail.com>  
+**License**: Same as OpenClaw
