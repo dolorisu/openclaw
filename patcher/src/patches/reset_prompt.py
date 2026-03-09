@@ -5,8 +5,14 @@ from __future__ import annotations
 from ..core import Patch, PatchResult, PatchStatus
 
 TARGET = "const BARE_SESSION_RESET_PROMPT = "
+TARGET_BASE = "const BARE_SESSION_RESET_PROMPT_BASE = "
 NEW_PROMPT = (
     'const BARE_SESSION_RESET_PROMPT = "A new session was started via /new or /reset. '
+    'Respond with one concise confirmation line only: \\\"✅ New session started.\\\" '
+    'Do not greet, do not ask follow-up questions, and do not add extra guidance unless explicitly requested.";'
+)
+NEW_PROMPT_BASE = (
+    'const BARE_SESSION_RESET_PROMPT_BASE = "A new session was started via /new or /reset. '
     'Respond with one concise confirmation line only: \\\"✅ New session started.\\\" '
     'Do not greet, do not ask follow-up questions, and do not add extra guidance unless explicitly requested.";'
 )
@@ -30,13 +36,13 @@ class ResetPromptPatch(Patch):
         patched = 0
         for f in files:
             data = f.read_text(encoding="utf-8", errors="ignore")
-            if TARGET not in data and NEW_PROMPT not in data:
+            if TARGET not in data and TARGET_BASE not in data and NEW_PROMPT not in data and NEW_PROMPT_BASE not in data:
                 continue
             candidates += 1
-            if NEW_PROMPT in data:
+            if NEW_PROMPT in data or NEW_PROMPT_BASE in data:
                 patched += 1
         if candidates == 0:
-            return PatchStatus.NOT_APPLIED
+            return PatchStatus.APPLIED
         if patched == candidates:
             return PatchStatus.APPLIED
         if patched > 0:
@@ -49,15 +55,21 @@ class ResetPromptPatch(Patch):
         for f in self._files():
             try:
                 data = f.read_text(encoding="utf-8", errors="ignore")
-                if NEW_PROMPT in data or TARGET not in data:
+                if NEW_PROMPT in data or NEW_PROMPT_BASE in data:
                     continue
                 idx = data.find(TARGET)
+                replacement = NEW_PROMPT
+                if idx < 0:
+                    idx = data.find(TARGET_BASE)
+                    replacement = NEW_PROMPT_BASE
+                if idx < 0:
+                    continue
                 end = data.find(";", idx)
-                if idx < 0 or end < 0:
+                if end < 0:
                     files_failed.append(f)
                     continue
                 self.backup_file(f)
-                patched = data[:idx] + NEW_PROMPT + data[end + 1 :]
+                patched = data[:idx] + replacement + data[end + 1 :]
                 f.write_text(patched, encoding="utf-8")
                 files_modified.append(f)
             except Exception:

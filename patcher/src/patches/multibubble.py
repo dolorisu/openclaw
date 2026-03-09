@@ -54,15 +54,24 @@ class MultiBubblePatch(Patch):
         candidate_count = 0
         for f in all_files:
             content = f.read_text(encoding='utf-8', errors='ignore')
-            if (
-                self.SPLIT_MARKER in content
-                or 'const sendTextChunks = async (text, overrides) => {' in content
-                or 'const paragraphParts = rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);' in content
-                or 'const splitSource = fallbackText.replace(/\\r\\n?/g, "\\n");' in content
-            ):
+            is_deliver_candidate = 'const sendTextChunks = async (text, overrides) => {' in content or self.SPLIT_MARKER in content
+            is_web_candidate = (
+                'const paragraphParts = rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);' in content
+                or 'paragraphParts = rawText.includes("```")' in content
+            )
+            is_tg_candidate = 'const splitSource = fallbackText.replace(/\\r\\n?/g, "\\n");' in content or '__openclawNoSplit' in content
+
+            file_candidate = is_deliver_candidate or is_web_candidate or is_tg_candidate
+            file_patched = (
+                (is_deliver_candidate and self.SPLIT_MARKER in content)
+                or (is_web_candidate and 'paragraphParts = rawText.includes("```")' in content)
+                or (is_tg_candidate and '__openclawNoSplit' in content)
+            )
+
+            if file_candidate:
                 candidate_count += 1
-            if self.SPLIT_MARKER in content:
-                patched_count += 1
+                if file_patched:
+                    patched_count += 1
 
         if candidate_count == 0:
             return PatchStatus.NOT_APPLIED

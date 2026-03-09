@@ -101,13 +101,26 @@ class TailGuardPatch(Patch):
     def check(self) -> PatchStatus:
         files = self._files()
         if not files:
-            return PatchStatus.NOT_APPLIED
+            return PatchStatus.APPLIED
         patched = 0
+        candidates = 0
         for f in files:
             data = f.read_text(encoding="utf-8", errors="ignore")
-            if HELPER_MARKER in data and TAIL_MARKER in data and PREVIEW_MARKER in data:
-                patched += 1
-        if patched == len(files):
+            if (
+                HELPER_MARKER in data
+                or TAIL_MARKER in data
+                or PREVIEW_MARKER in data
+                or NORMALIZED_SNIPPET in data
+                or NORMALIZED_PATCHED in data
+                or NO_FINAL_SNIPPET in data
+                or NO_FINAL_PATCHED in data
+            ):
+                candidates += 1
+                if HELPER_MARKER in data and TAIL_MARKER in data and PREVIEW_MARKER in data:
+                    patched += 1
+        if candidates == 0:
+            return PatchStatus.APPLIED
+        if patched == candidates:
             return PatchStatus.APPLIED
         if patched > 0:
             return PatchStatus.PARTIALLY_APPLIED
