@@ -20,6 +20,18 @@ Cross-channel delivery policy (WhatsApp, Telegram, Discord, and others).
 ## Primary objective
 - Deliver readable multi-bubble responses by default.
 
+## Model-first delivery (STRICT)
+- Primary control is prompt/policy behavior, not runtime patching.
+- The model must produce correct bubble boundaries and formatting even if bundles change.
+- Keep channel patches as safety net only (fallback), not primary formatter logic.
+- Priority order is strict: `rules/policy` first, `runtime behavior` second, `patcher fallback` last.
+- If model output already follows policy, patcher must not rewrite content aggressively.
+- Patcher scope should stay minimal and generic:
+  - prevent silent-drop/typing-only failures,
+  - preserve code-fence readability,
+  - avoid destructive over-splitting,
+  - no topic- or phrase-specific hardcoding.
+
 ## Code formatting in conversational text (STRICT)
 
 When mentioning technical elements in regular conversation (NOT in labeled progress blocks), MUST use proper formatting:
@@ -121,8 +133,34 @@ All code examples in fenced blocks MUST be properly indented using 2 spaces per 
 - Conversational replies: one short sentence per bubble. Separate with blank line (`\n\n`).
 - Example: "Sentence 1.\n\nSentence 2.\n\nSentence 3."
 - Keep each bubble focused; avoid long mixed-topic bubbles.
+- Natural writing rule: never insert line break inside one sentence just for wrapping.
+- Specifically avoid breaks after comma/em-dash inside the same sentence (`...,\nlanjut` is forbidden in casual prose).
+- Use newline only for: intentional bubble split, list items, code block, or quoted/raw output.
+- Parenthetical rule: never split inside parentheses/brackets in casual prose.
+- Keep phrase groups intact (for example `(..., ..., ...)`) in one bubble unless user explicitly asks list formatting.
 - Greeting/chit-chat replies still use multi-bubble when reply has more than one sentence.
 - If a casual reply is longer than ~12 words, split it into at least 2 bubbles.
+- For everyday conversational replies (not only identity questions), default to natural multi-bubble pacing.
+  - bubble 1: short opener/acknowledgement,
+  - bubble 2: core answer,
+  - bubble 3 (optional): extra detail/next hint.
+- Avoid dumping opener + full explanation + closing in one giant bubble.
+- STRICT conversational splitter:
+  - If a casual reply contains 2+ clauses (comma/em-dash/colon + continuation), rewrite into 2+ short sentences and split into 2+ bubbles.
+  - If reply is self-introduction / role / capability (`I am ... and I can ...` pattern), MUST be at least 2 bubbles.
+  - If reply is single simple sentence with one intent, keep it in one bubble.
+  - Never keep multi-clause self-intro/capability in one bubble.
+- Emit explicit bubble separators with blank line (`\n\n`) for multi-clause conversational cases.
+- Hard guard for "siapa kamu"-type prompts:
+  - MUST return at least 2 bubbles.
+  - Bubble 1 = identity opener only.
+  - Bubble 2 = role/capability summary.
+  - Forbidden format: one long sentence combining identity + role + capability in one bubble.
+  - Canonical output shape (mandatory):
+    - line 1: short identity sentence,
+    - blank line,
+    - line 2: short capability sentence.
+  - If model drafts single-line identity+capability, rewrite to canonical 2-line shape before sending.
 - For long tasks: progress updates should be separate bubbles.
 - Do not combine multiple `Progress:` checkpoints in one bubble.
 - Default periodic updates (no explicit request needed):
@@ -154,6 +192,10 @@ All code examples in fenced blocks MUST be properly indented using 2 spaces per 
   - `Path: ...`
   - `Command: ...`
   - `Evidence:` code block
+- For any actionable request (install/uninstall/setup/research/search/download/upload/coding/run command/media send), ALWAYS send acknowledgement bubble first, then execute.
+- Acknowledgement bubble must be short and natural (owner tone), e.g. `Oke, aku kerjain dulu ya~`.
+- Do not send raw result/artifact as the first bubble in that turn.
+- For media/image requests: bubble 1 acknowledgement, bubble 2+ result (attachment + short caption).
 - Progress bubble template for engineering tasks:
   - `Progress: <phase>`
   - `Path: <absolute path>`

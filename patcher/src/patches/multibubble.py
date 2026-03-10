@@ -196,13 +196,19 @@ class MultiBubblePatch(Patch):
             
             new_logic = (
                 'const keepAtomicProgress = /^\\s*Progress:\\s+/m.test(rawText) && /^\\s*Path:\\s+/m.test(rawText);\n'
-                '\t\tconst paragraphParts = rawText.includes("```") || keepAtomicProgress ? [rawText] : '
-                'rawText.split(/\\n\\n+/).map((part) => part.trim()).filter(Boolean);'
+                '\t\tconst paragraphParts = rawText.includes("```") || keepAtomicProgress ? [rawText] : splitWhatsAppParagraphParts(rawText);'
             )
 
             new_content = content
             if re.search(old_pattern, new_content):
                 new_content = re.sub(old_pattern, new_logic, new_content)
+                changed = True
+
+            # Handle newer runtime variants where paragraphParts has extra filtering
+            paragraph_variant_pattern = r'const paragraphParts = rawText\.includes\("```"\)\s*\|\|\s*keepAtomicProgress \? \[rawText\] : [^;]+;'
+            paragraph_variant_replacement = 'const paragraphParts = rawText.includes("```") || keepAtomicProgress ? [rawText] : splitWhatsAppParagraphParts(rawText);'
+            if re.search(paragraph_variant_pattern, new_content) and 'splitWhatsAppParagraphParts(rawText)' not in new_content:
+                new_content = re.sub(paragraph_variant_pattern, paragraph_variant_replacement, new_content)
                 changed = True
 
             generic_helper = (
@@ -256,7 +262,134 @@ class MultiBubblePatch(Patch):
                 '\t};\n'
                 '\treturn text.replace(/```([a-zA-Z0-9_-]*)\\n([\\s\\S]*?)\\n```/g, (full, lang, body) => "```" + lang + "\\n" + formatFence(lang, body) + "\\n```");\n'
                 '}\n'
+                'function normalizeWhatsAppText(text) {\n'
+                '\tif (typeof text !== "string") return String(text ?? "");\n'
+                '\tlet out = text.replace(/\\r\\n?/g, "\\n");\n'
+                '\tout = out.replace(/[\\u200B-\\u200D\\uFEFF]/g, "");\n'
+                '\tout = out.replace(/^\\s*#{2,6}\\s+(.+)$/gm, (_, title) => `**${String(title || "").trim()}**`);\n'
+                '\tout = out.replace(/^([^\\n]{6,120}[.!?~])\\s+(?=\\S)/m, "$1\\n\\n");\n'
+                '\tout = out.replace(/^([^\\n]{8,90}?—)\\s*(?=\\S.{16,})/m, "$1\\n\\n");\n'
+                '\tout = out.replace(/^([ \\t]*[-*+•]\\s+[^\\n]{1,40})\\n(?=[a-z(])/gim, "$1 ");\n'
+                '\tout = out.replace(/([^.?!:;\\n])\\n(?!\\s*(?:[-*+•]\\s|\\d+[.)]\\s|#{1,6}\\s|>))(?!\\s*$)/g, "$1 ");\n'
+                '\tout = out.replace(/\\n{3,}/g, "\\n\\n");\n'
+                '\treturn out.trim();\n'
+                '}\n'
+                'function splitWhatsAppParagraphParts(text) {\n'
+                '\tconst splitConversationalParagraph = (part) => {\n'
+                '\t\tconst p = String(part || "").trim();\n'
+                '\t\tif (!p) return [];\n'
+                '\t\tconst dashSplit = p.match(/^(.{8,80}?—)\\s*(.{12,})$/);\n'
+                '\t\tif (dashSplit) return [dashSplit[1], dashSplit[2]];\n'
+                '\t\tif (p.length < 70) return [p];\n'
+                '\t\tif (p.includes("```") || p.includes("`") || /https?:\\/\\//i.test(p)) return [p];\n'
+                '\t\tif (/^(?:[-*+•]|\\d+[.)])\\s+/m.test(p)) return [p];\n'
+                '\t\tif (/\\n/.test(p) && /^(?:[-*+•]|\\d+[.)])\\s+/m.test(p)) return [p];\n'
+                '\t\tconst flat = p.replace(/\\n+/g, " ").replace(/\\s{2,}/g, " ").trim();\n'
+                '\t\tconst clause = flat.match(/^(.{18,110}?(?:—|:))\\s*(.{20,})$/);\n'
+                '\t\tif (clause) return [clause[1], clause[2]];\n'
+                '\t\tconst sentence = flat.match(/^(.{18,120}?[.!?~])\\s+(.{20,})$/);\n'
+                '\t\tif (sentence) return [sentence[1], sentence[2]];\n'
+                '\t\treturn [p];\n'
+                '\t};\n'
+                '\tconst base = String(text || "").split(/\\n\\s*\\n+/).map((part) => part.trim()).filter(Boolean).flatMap(splitConversationalParagraph);\n'
+                '\tif (base.length <= 1) return base;\n'
+                '\tconst merged = [];\n'
+                '\tfor (const part of base) {\n'
+                '\t\tif (!merged.length) { merged.push(part); continue; }\n'
+                '\t\tconst prev = merged[merged.length - 1];\n'
+                '\t\tconst startsListLike = /^(?:[-*+•]|\\d+[.)])\\s+/.test(part);\n'
+                '\t\tconst prevEndsColon = /[:：]$/.test(prev);\n'
+                '\t\tconst prevEndsSoftClause = /[,—-]$/.test(prev);\n'
+                '\t\tconst startsContinuation = /^[a-z(]/.test(part);\n'
+                '\t\tif (startsListLike && prevEndsColon) {\n'
+                '\t\t\tmerged[merged.length - 1] = `${prev}\\n\\n${part}`;\n'
+                '\t\t\tcontinue;\n'
+                '\t\t}\n'
+                '\t\tif (startsContinuation && !prevEndsSoftClause) {\n'
+                '\t\t\tmerged[merged.length - 1] = `${prev} ${part}`;\n'
+                '\t\t\tcontinue;\n'
+                '\t\t}\n'
+                '\t\tmerged.push(part);\n'
+                '\t}\n'
+                '\treturn merged;\n'
+                '}\n'
+                'function chunkWhatsAppPart(part, textLimit, chunkMode, tableMode) {\n'
+                '\tconst rendered = markdownToWhatsApp(convertMarkdownTables(part, tableMode));\n'
+                '\tconst numericLimit = typeof textLimit === "number" && Number.isFinite(textLimit) ? textLimit : 0;\n'
+                '\tconst safeLimit = Math.max(numericLimit, 3200);\n'
+                '\tif (rendered.length <= safeLimit) return [rendered];\n'
+                '\treturn chunkMarkdownTextWithMode(rendered, textLimit, chunkMode);\n'
+                '}\n'
             )
+
+            text_shape_helpers = (
+                'function normalizeWhatsAppText(text) {\n'
+                '\tif (typeof text !== "string") return String(text ?? "");\n'
+                '\tlet out = text.replace(/\\r\\n?/g, "\\n");\n'
+                '\tout = out.replace(/[\\u200B-\\u200D\\uFEFF]/g, "");\n'
+                '\tout = out.replace(/^\\s*#{2,6}\\s+(.+)$/gm, (_, title) => `**${String(title || "").trim()}**`);\n'
+                '\tout = out.replace(/^([^\\n]{6,120}[.!?~])\\s+(?=\\S)/m, "$1\\n\\n");\n'
+                '\tout = out.replace(/^([^\\n]{8,90}?—)\\s*(?=\\S.{16,})/m, "$1\\n\\n");\n'
+                '\tout = out.replace(/^([ \\t]*[-*+•]\\s+[^\\n]{1,40})\\n(?=[a-z(])/gim, "$1 ");\n'
+                '\tout = out.replace(/([^.?!:;\\n])\\n(?!\\s*(?:[-*+•]\\s|\\d+[.)]\\s|#{1,6}\\s|>))(?!\\s*$)/g, "$1 ");\n'
+                '\tout = out.replace(/\\n{3,}/g, "\\n\\n");\n'
+                '\treturn out.trim();\n'
+                '}\n'
+                'function splitWhatsAppParagraphParts(text) {\n'
+                '\tconst splitConversationalParagraph = (part) => {\n'
+                '\t\tconst p = String(part || "").trim();\n'
+                '\t\tif (!p) return [];\n'
+                '\t\tconst dashSplit = p.match(/^(.{8,80}?—)\\s*(.{12,})$/);\n'
+                '\t\tif (dashSplit) return [dashSplit[1], dashSplit[2]];\n'
+                '\t\tif (p.length < 70) return [p];\n'
+                '\t\tif (p.includes("```") || p.includes("`") || /https?:\\/\\//i.test(p)) return [p];\n'
+                '\t\tif (/^(?:[-*+•]|\\d+[.)])\\s+/m.test(p)) return [p];\n'
+                '\t\tif (/\\n/.test(p) && /^(?:[-*+•]|\\d+[.)])\\s+/m.test(p)) return [p];\n'
+                '\t\tconst flat = p.replace(/\\n+/g, " ").replace(/\\s{2,}/g, " ").trim();\n'
+                '\t\tconst clause = flat.match(/^(.{18,110}?(?:—|:))\\s*(.{20,})$/);\n'
+                '\t\tif (clause) return [clause[1], clause[2]];\n'
+                '\t\tconst sentence = flat.match(/^(.{18,120}?[.!?~])\\s+(.{20,})$/);\n'
+                '\t\tif (sentence) return [sentence[1], sentence[2]];\n'
+                '\t\treturn [p];\n'
+                '\t};\n'
+                '\tconst base = String(text || "").split(/\\n\\s*\\n+/).map((part) => part.trim()).filter(Boolean).flatMap(splitConversationalParagraph);\n'
+                '\tif (base.length <= 1) return base;\n'
+                '\tconst merged = [];\n'
+                '\tfor (const part of base) {\n'
+                '\t\tif (!merged.length) { merged.push(part); continue; }\n'
+                '\t\tconst prev = merged[merged.length - 1];\n'
+                '\t\tconst startsListLike = /^(?:[-*+•]|\\d+[.)])\\s+/.test(part);\n'
+                '\t\tconst prevEndsColon = /[:：]$/.test(prev);\n'
+                '\t\tconst prevEndsSoftClause = /[,—-]$/.test(prev);\n'
+                '\t\tconst startsContinuation = /^[a-z(]/.test(part);\n'
+                '\t\tif (startsListLike && prevEndsColon) {\n'
+                '\t\t\tmerged[merged.length - 1] = `${prev}\\n\\n${part}`;\n'
+                '\t\t\tcontinue;\n'
+                '\t\t}\n'
+                '\t\tif (startsContinuation && !prevEndsSoftClause) {\n'
+                '\t\t\tmerged[merged.length - 1] = `${prev} ${part}`;\n'
+                '\t\t\tcontinue;\n'
+                '\t\t}\n'
+                '\t\tmerged.push(part);\n'
+                '\t}\n'
+                '\treturn merged;\n'
+                '}\n'
+                'function chunkWhatsAppPart(part, textLimit, chunkMode, tableMode) {\n'
+                '\tconst rendered = markdownToWhatsApp(convertMarkdownTables(part, tableMode));\n'
+                '\tconst numericLimit = typeof textLimit === "number" && Number.isFinite(textLimit) ? textLimit : 0;\n'
+                '\tconst safeLimit = Math.max(numericLimit, 3200);\n'
+                '\tif (rendered.length <= safeLimit) return [rendered];\n'
+                '\treturn chunkMarkdownTextWithMode(rendered, textLimit, chunkMode);\n'
+                '}\n'
+            )
+
+            text_chunks_pattern = r'const textChunks = rawText\.includes\("```"\)\s*\|\|\s*keepAtomicProgress \? \[markdownToWhatsApp\(convertMarkdownTables\(rawText, tableMode\)\)\] : [^;]+;'
+            text_chunks_replacement = 'const textChunks = rawText.includes("```") || keepAtomicProgress ? [markdownToWhatsApp(convertMarkdownTables(rawText, tableMode))] : paragraphParts.flatMap((part) => chunkWhatsAppPart(part, textLimit, chunkMode, tableMode));'
+            if re.search(text_chunks_pattern, new_content):
+                updated_content = re.sub(text_chunks_pattern, text_chunks_replacement, new_content)
+                if updated_content != new_content:
+                    new_content = updated_content
+                    changed = True
 
             old_helper = (
                 'function formatJsonCodeFences(text) {\n'
@@ -274,8 +407,174 @@ class MultiBubblePatch(Patch):
                 '}\n'
             )
 
+            old_normalize_helper = (
+                'function normalizeWhatsAppText(text) {\n'
+                '\tif (typeof text !== "string") return String(text ?? "");\n'
+                '\tlet out = text.replace(/\\r\\n?/g, "\\n");\n'
+                '\tout = out.replace(/^\\s*#{2,6}\\s+(.+)$/gm, (_, title) => `**${String(title || "").trim()}**`);\n'
+                '\tout = out.replace(/([^.?!:;\\n])\\n(?!\\s*(?:[-*+•]\\s|\\d+[.)]\\s|#{1,6}\\s|>))(?!\\s*$)/g, "$1 ");\n'
+                '\tout = out.replace(/\\n{3,}/g, "\\n\\n");\n'
+                '\treturn out.trim();\n'
+                '}\n'
+            )
+
+            new_normalize_helper = (
+                'function normalizeWhatsAppText(text) {\n'
+                '\tif (typeof text !== "string") return String(text ?? "");\n'
+                '\tlet out = text.replace(/\\r\\n?/g, "\\n");\n'
+                '\tout = out.replace(/[\\u200B-\\u200D\\uFEFF]/g, "");\n'
+                '\tout = out.replace(/^\\s*#{2,6}\\s+(.+)$/gm, (_, title) => `**${String(title || "").trim()}**`);\n'
+                '\tout = out.replace(/^([^\\n]{6,120}[.!?~])\\s+(?=\\S)/m, "$1\\n\\n");\n'
+                '\tout = out.replace(/^([^\\n]{40,120},)\\s+(?=[^\\n]{24,})/m, "$1\\n\\n");\n'
+                '\tout = out.replace(/^([^\\n]{24,120}[—-])\\s+(?=[^\\n]{20,})/m, "$1\\n\\n");\n'
+                '\tout = out.replace(/,\\n(?=\\s*[a-z(])/g, ", ");\n'
+                '\tout = out.replace(/^([ \\t]*[-*+•]\\s+[^\\n]{1,40})\\n(?=[a-z(])/gim, "$1 ");\n'
+                '\tout = out.replace(/([^.?!:;\\n])\\n(?!\\s*(?:[-*+•]\\s|\\d+[.)]\\s|#{1,6}\\s|>))(?!\\s*$)/g, "$1 ");\n'
+                '\tout = out.replace(/\\n{3,}/g, "\\n\\n");\n'
+                '\treturn out.trim();\n'
+                '}\n'
+            )
+
+            chunk_helper_block = (
+                'function chunkWhatsAppPart(part, textLimit, chunkMode, tableMode) {\n'
+                '\tconst rendered = markdownToWhatsApp(convertMarkdownTables(part, tableMode));\n'
+                '\tconst numericLimit = typeof textLimit === "number" && Number.isFinite(textLimit) ? textLimit : 0;\n'
+                '\tconst safeLimit = Math.max(numericLimit, 3200);\n'
+                '\tif (rendered.length <= safeLimit) return [rendered];\n'
+                '\treturn chunkMarkdownTextWithMode(rendered, textLimit, chunkMode);\n'
+                '}\n'
+            )
+
             if old_helper in new_content and generic_helper not in new_content:
                 new_content = new_content.replace(old_helper, generic_helper, 1)
+                changed = True
+
+            # Upgrade existing normalize helper in-place (for already-patched bundles)
+            if 'function normalizeWhatsAppText(text) {' in new_content:
+                if 'out = out.replace(/[\\u200B-\\u200D\\uFEFF]/g, "");' not in new_content and 'let out = text.replace(/\\r\\n?/g, "\\n");' in new_content:
+                    new_content = new_content.replace(
+                        'let out = text.replace(/\\r\\n?/g, "\\n");',
+                        'let out = text.replace(/\\r\\n?/g, "\\n");\n\tout = out.replace(/[\\u200B-\\u200D\\uFEFF]/g, "");',
+                        1
+                    )
+                    changed = True
+
+                if 'out = out.replace(/^([^\\n]{6,120}[.!?~])\\s+(?=\\S)/m, "$1\\n\\n");' not in new_content and 'out = out.replace(/^\\s*#{2,6}\\s+(.+)$/gm, (_, title) => `**${String(title || "").trim()}**`);' in new_content:
+                    new_content = new_content.replace(
+                        'out = out.replace(/^\\s*#{2,6}\\s+(.+)$/gm, (_, title) => `**${String(title || "").trim()}**`);',
+                        'out = out.replace(/^\\s*#{2,6}\\s+(.+)$/gm, (_, title) => `**${String(title || "").trim()}**`);\n\tout = out.replace(/^([^\\n]{6,120}[.!?~])\\s+(?=\\S)/m, "$1\\n\\n");',
+                        1
+                    )
+                    changed = True
+
+                if 'out = out.replace(/^([^\\n]{8,90}?—)\\s*(?=\\S.{16,})/m, "$1\\n\\n");' not in new_content and 'out = out.replace(/^([^\\n]{6,120}[.!?~])\\s+(?=\\S)/m, "$1\\n\\n");' in new_content:
+                    new_content = new_content.replace(
+                        'out = out.replace(/^([^\\n]{6,120}[.!?~])\\s+(?=\\S)/m, "$1\\n\\n");',
+                        'out = out.replace(/^([^\\n]{6,120}[.!?~])\\s+(?=\\S)/m, "$1\\n\\n");\n\tout = out.replace(/^([^\\n]{8,90}?—)\\s*(?=\\S.{16,})/m, "$1\\n\\n");',
+                        1
+                    )
+                    changed = True
+
+                if 'out = out.replace(/^([^\\n]{12,90}?—)\\s*(?=\\S.{16,})/m, "$1\\n\\n");' in new_content:
+                    new_content = new_content.replace('out = out.replace(/^([^\\n]{12,90}?—)\\s*(?=\\S.{16,})/m, "$1\\n\\n");', 'out = out.replace(/^([^\\n]{8,90}?—)\\s*(?=\\S.{16,})/m, "$1\\n\\n");')
+                    changed = True
+
+                # Remove old phrase/topic-specific hacks (keep generic rules only)
+                for legacy_line in [
+                    'out = out.replace(/^(\\s*(?:oke|siap|baik|wkwk|hmm|yosh|nah|btw)\\b[^\\n]{0,110}?[~!?])\\s+(?=\\S)/im, "$1\\n\\n");',
+                    'out = out.replace(/^(Oke,\\s*ini\\s*ringkasnya\\s*ya~)\\s+/im, "$1\\n\\n");',
+                    'out = out.replace(/^(Sarapan\\s*dulu\\s*yaa~)\\s+/im, "$1\\n\\n");',
+                    'out = out.replace(/^(Wkwk[^\\n]{0,80}?~)\\s+(?=[^A-Za-z0-9\\s])/im, "$1\\n\\n");',
+                    'out = out.replace(/(Ringkasan konsep utama)\\s+([1-9]\\)\\s+)/gi, "$1\\n$2");',
+                    'out = out.replace(/([^.?!:;\\n])\\n(?=\\s*(?:Inti artikel itu:|Ringkasan konsep utama\\b|Ini penting\\b|Bedanya vs SIWE\\b|Security angle\\b|Kombinasi paling kuat:|Hasilnya:|Status saat ini\\b|Jadi cocok untuk\\b|Kalau mau, next aku bisa))/g, "$1\\n\\n");',
+                    'out = out.replace(/^([^\\n]{40,120},)\\s+(?=[^\\n]{24,})/m, "$1\\n\\n");',
+                    'out = out.replace(/^([^\\n]{24,120}[—-])\\s+(?=[^\\n]{20,})/m, "$1\\n\\n");',
+                    'out = out.replace(/,\\n(?=\\s*[a-z(])/g, ", ");'
+                ]:
+                    if legacy_line in new_content:
+                        new_content = new_content.replace(legacy_line + '\n', '')
+                        new_content = new_content.replace(legacy_line, '')
+                        changed = True
+
+                if 'out = out.replace(/^([ \\t]*[-*+•]\\s+[^\\n]{1,40})\\n(?=[a-z(])/gim, "$1 ");' not in new_content and 'out = out.replace(/([^.?!:;\\n])\\n(?!\\s*(?:[-*+•]\\s|\\d+[.)]\\s|#{1,6}\\s|>))(?!\\s*$)/g, "$1 ");' in new_content:
+                    new_content = new_content.replace(
+                        'out = out.replace(/([^.?!:;\\n])\\n(?!\\s*(?:[-*+•]\\s|\\d+[.)]\\s|#{1,6}\\s|>))(?!\\s*$)/g, "$1 ");',
+                        'out = out.replace(/^([ \\t]*[-*+•]\\s+[^\\n]{1,40})\\n(?=[a-z(])/gim, "$1 ");\n\tout = out.replace(/([^.?!:;\\n])\\n(?!\\s*(?:[-*+•]\\s|\\d+[.)]\\s|#{1,6}\\s|>))(?!\\s*$)/g, "$1 ");',
+                        1
+                    )
+                    changed = True
+
+                # Upgrade split helper from topic-specific to universal
+                if 'const startsBenefit = /^(?:✅\\s*)?Benefit:/i.test(part);' in new_content:
+                    new_content = new_content.replace(
+                        'const startsBenefit = /^(?:✅\\s*)?Benefit:/i.test(part);\n\t\tconst startsFlow = /^Flow:/i.test(part);\n\t\tconst startsLowerCont = /^(?:dan|atau|serta|asal)\\b/i.test(part);\n\t\tif (startsBenefit || startsFlow) {',
+                        'const startsListLike = /^(?:[-*+•]|\\d+[.)])\\s+/.test(part);\n\t\tconst prevEndsColon = /[:：]$/.test(prev);\n\t\tconst startsContinuation = /^[a-z(]/.test(part);\n\t\tif (startsListLike && prevEndsColon) {'
+                    )
+                    new_content = new_content.replace('if (startsLowerCont) {', 'if (startsContinuation) {')
+                    changed = True
+
+                if 'const prevEndsSoftClause = /[,—-]$/.test(prev);' not in new_content and 'const prevEndsColon = /[:：]$/.test(prev);' in new_content:
+                    new_content = new_content.replace(
+                        'const prevEndsColon = /[:：]$/.test(prev);',
+                        'const prevEndsColon = /[:：]$/.test(prev);\n\t\tconst prevEndsSoftClause = /[,—-]$/.test(prev);',
+                        1
+                    )
+                    changed = True
+
+                if 'if (startsContinuation && !prevEndsSoftClause) {' not in new_content and 'if (startsContinuation) {' in new_content:
+                    new_content = new_content.replace('if (startsContinuation) {', 'if (startsContinuation && !prevEndsSoftClause) {', 1)
+                    changed = True
+
+                # Upgrade split helper to conversational clause splitter
+                old_split_base = 'const base = String(text || "").split(/\\n\\s*\\n+/).map((part) => part.trim()).filter(Boolean);'
+                if old_split_base in new_content and 'splitConversationalParagraph = (part) =>' not in new_content:
+                    new_split_block = (
+                        'const splitConversationalParagraph = (part) => {\n\t\tconst p = String(part || "").trim();\n\t\tif (!p) return [];\n\t\tif (p.length < 70) return [p];\n\t\tif (p.includes("```") || p.includes("`") || /https?:\\/\\//i.test(p)) return [p];\n\t\tif (/^(?:[-*+•]|\\d+[.)])\\s+/m.test(p)) return [p];\n\t\tif (/\\n/.test(p) && /^(?:[-*+•]|\\d+[.)])\\s+/m.test(p)) return [p];\n\t\tconst flat = p.replace(/\\n+/g, " ").replace(/\\s{2,}/g, " ").trim();\n\t\tconst clause = flat.match(/^(.{18,110}?(?:—|:))\\s*(.{20,})$/);\n\t\tif (clause) return [clause[1], clause[2]];\n\t\tconst sentence = flat.match(/^(.{18,120}?[.!?~])\\s+(.{20,})$/);\n\t\tif (sentence) return [sentence[1], sentence[2]];\n\t\treturn [p];\n\t};\n\tconst base = String(text || "").split(/\\n\\s*\\n+/).map((part) => part.trim()).filter(Boolean).flatMap(splitConversationalParagraph);'
+                    )
+                    new_content = new_content.replace(old_split_base, new_split_block, 1)
+                    changed = True
+
+                # Upgrade existing conversational splitter variant
+                old_guard = 'if (p.includes("```") || p.includes("`") || /https?:\\/\\//i.test(p) || /\\n/.test(p)) return [p];'
+                if old_guard in new_content:
+                    new_content = new_content.replace(old_guard, 'if (p.includes("```") || p.includes("`") || /https?:\\/\\//i.test(p)) return [p];')
+                    changed = True
+
+                old_list_guard = 'if (/^(?:[-*+•]|\\d+[.)])\\s+/.test(p)) return [p];'
+                if old_list_guard in new_content:
+                    new_content = new_content.replace(old_list_guard, 'if (/^(?:[-*+•]|\\d+[.)])\\s+/m.test(p)) return [p];\n\t\tif (/\\n/.test(p) && /^(?:[-*+•]|\\d+[.)])\\s+/m.test(p)) return [p];\n\t\tconst flat = p.replace(/\\n+/g, " ").replace(/\\s{2,}/g, " ").trim();')
+                    changed = True
+
+                if 'const dashSplit = p.match(/^(.{8,80}?—)\\s*(.{12,})$/);' not in new_content and 'const p = String(part || "").trim();' in new_content:
+                    new_content = new_content.replace(
+                        'const p = String(part || "").trim();',
+                        'const p = String(part || "").trim();\n\t\tconst dashSplit = p.match(/^(.{8,80}?—)\\s*(.{12,})$/);\n\t\tif (dashSplit) return [dashSplit[1], dashSplit[2]];',
+                        1
+                    )
+                    changed = True
+
+                if 'const clause = p.match(/^(.{18,96}?(?:,|—|-|:))\\s+(.{20,})$/);' in new_content:
+                    new_content = new_content.replace('const clause = p.match(/^(.{18,96}?(?:,|—|-|:))\\s+(.{20,})$/);', 'const clause = flat.match(/^(.{18,110}?(?:—|:))\\s*(.{20,})$/);')
+                    changed = True
+
+                if 'const clause = flat.match(/^(.{18,96}?(?:,|—|-|:))\\s+(.{20,})$/);' in new_content:
+                    new_content = new_content.replace('const clause = flat.match(/^(.{18,96}?(?:,|—|-|:))\\s+(.{20,})$/);', 'const clause = flat.match(/^(.{18,110}?(?:—|:))\\s*(.{20,})$/);')
+                    changed = True
+
+                if 'const clause = flat.match(/^(.{18,96}?(?:,|—|-|:))\\s+(.{20,})$/);' in new_content:
+                    new_content = new_content.replace('const clause = flat.match(/^(.{18,96}?(?:,|—|-|:))\\s+(.{20,})$/);', 'const clause = flat.match(/^(.{18,110}?(?:—|:))\\s*(.{20,})$/);')
+                    changed = True
+
+                if 'const clause = flat.match(/^(.{18,110}?(?:—|:))\\s+(.{20,})$/);' in new_content:
+                    new_content = new_content.replace('const clause = flat.match(/^(.{18,110}?(?:—|:))\\s+(.{20,})$/);', 'const clause = flat.match(/^(.{18,110}?(?:—|:))\\s*(.{20,})$/);')
+                    changed = True
+
+                if 'const sentence = p.match(/^(.{18,120}?[.!?~])\\s+(.{20,})$/);' in new_content:
+                    new_content = new_content.replace('const sentence = p.match(/^(.{18,120}?[.!?~])\\s+(.{20,})$/);', 'const sentence = flat.match(/^(.{18,120}?[.!?~])\\s+(.{20,})$/);')
+                    changed = True
+
+            if old_normalize_helper in new_content and new_normalize_helper not in new_content:
+                new_content = new_content.replace(old_normalize_helper, new_normalize_helper, 1)
                 changed = True
 
             buggy_quote_check = 'if (ch === """ || ch === "\'" || ch === "`") { quote = ch; continue; }'
@@ -286,6 +585,14 @@ class MultiBubblePatch(Patch):
 
             if self.JSON_CODEBLOCK_MARKER not in new_content and 'async function deliverWebReply(params) {' in new_content:
                 new_content = new_content.replace('async function deliverWebReply(params) {', generic_helper + 'async function deliverWebReply(params) {', 1)
+                changed = True
+
+            if 'function normalizeWhatsAppText(text) {' not in new_content and self.JSON_CODEBLOCK_MARKER in new_content:
+                new_content = new_content.replace('async function deliverWebReply(params) {', text_shape_helpers + 'async function deliverWebReply(params) {', 1)
+                changed = True
+
+            if 'function chunkWhatsAppPart(part, textLimit, chunkMode, tableMode) {' not in new_content and 'async function deliverWebReply(params) {' in new_content:
+                new_content = new_content.replace('async function deliverWebReply(params) {', chunk_helper_block + 'async function deliverWebReply(params) {', 1)
                 changed = True
 
             if 'function formatCodeBlocks(text) {' not in new_content and self.JSON_CODEBLOCK_MARKER in new_content:
@@ -299,10 +606,15 @@ class MultiBubblePatch(Patch):
 
             old_raw_line = 'const rawText = (replyResult.text || "").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*$/gm, "$1:").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*/gm, "$1: ").replace(/^\\s*[-*_]{3,}\\s*$/gm, "").replace(/```[a-zA-Z0-9_-]+\\n/g, "```\\n").replace(/\\n{3,}/g, "\\n\\n").trim();'
             new_raw_block = (
-                'const rawText = formatJsonCodeFences((replyResult.text || "").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*$/gm, "$1:").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*/gm, "$1: ").replace(/^\\s*[-*_]{3,}\\s*$/gm, "").replace(/```[a-zA-Z0-9_-]+\\n/g, "```\\n").replace(/\\n{3,}/g, "\\n\\n").trim());'
+                'const rawText = normalizeWhatsAppText(formatJsonCodeFences((replyResult.text || "").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*$/gm, "$1:").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*/gm, "$1: ").replace(/^\\s*[-*_]{3,}\\s*$/gm, "").replace(/```[a-zA-Z0-9_-]+\\n/g, "```\\n").replace(/\\n{3,}/g, "\\n\\n").trim()));'
             )
-            if old_raw_line in new_content and 'formatJsonCodeFences((replyResult.text || "")' not in new_content:
+            if old_raw_line in new_content and 'normalizeWhatsAppText(formatJsonCodeFences((replyResult.text || "")' not in new_content:
                 new_content = new_content.replace(old_raw_line, new_raw_block, 1)
+                changed = True
+
+            legacy_raw_block = 'const rawText = formatJsonCodeFences((replyResult.text || "").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*$/gm, "$1:").replace(/^\\s*\\*\\*([^*\\n]{1,64}):\\*\\*\\s*/gm, "$1: ").replace(/^\\s*[-*_]{3,}\\s*$/gm, "").replace(/```[a-zA-Z0-9_-]+\\n/g, "```\\n").replace(/\\n{3,}/g, "\\n\\n").trim());'
+            if legacy_raw_block in new_content and 'normalizeWhatsAppText(formatJsonCodeFences((replyResult.text || "")' not in new_content:
+                new_content = new_content.replace(legacy_raw_block, new_raw_block, 1)
                 changed = True
 
             if changed:

@@ -541,6 +541,11 @@ E: Could not open lock file /var/lib/apt/lists/lock - open (13: Permission denie
 - Beginner mode should stay practical with labeled blocks (`Progress/Path/Command/Evidence/Hasil`) and concise runnable steps.
 - Do not use separator-only lines (`---`) as section dividers in beginner/tutorial replies.
 - In WhatsApp delivery, keep `Command:` to single-line runnable commands; do not paste long heredoc or full file bodies into `Command:`.
+- In WhatsApp conversational mode (non-command small talk/Q&A):
+  - one intent and one short sentence -> one bubble,
+  - multi-intent or self-intro+capability -> mandatory split into 2+ bubbles using blank-line separators (`\n\n`),
+  - for `siapa kamu`/identity prompts: at least 2 bubbles (identity first, capability second),
+  - do not compress identity + capability into one long sentence.
 - For file creation steps, use short command references (`create/update <path>`) and put code into artifact files, then verify with measurable evidence (`ls -l`, `wc -l`, checksum).
 - Avoid giant fenced code blocks in progress bubbles; if code is needed, share minimal snippet only and prioritize path + verification evidence.
 - Keep `Path:` compact for readability (prefer `~/.openclaw/...` over long absolute home path when equivalent).
@@ -882,4 +887,3 @@ Full format ensures:
 - Explicit success/failure status  
 - Consistent structure across all progress updates
 - User can copy-paste paths directly
-
