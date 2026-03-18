@@ -2,11 +2,13 @@
 
 Operational tool notes.
 
-- Primary policies are in `custom/policies/`.
-- Repo flow is in `custom/ops/DOLORIS_REPO_WORKFLOW.md`.
-- Store non-policy artifacts in:
-  - `~/.openclaw/artifacts/generated/`
-  - `~/.openclaw/artifacts/scratch/`
-- Store sendable media (for WA/TG attachments) in:
-  - `~/.openclaw/media/`
-  - `/tmp/openclaw/downloads/`
+**For file locations, see AGENTS.md - FILE LOCATION POLICY section.**
+
+## Artifacts Storage
+- Generated code/projects: `~/.openclaw/artifacts/generated/`
+- Scratch/temp files: `~/.openclaw/artifacts/scratch/`
+- Sendable media (WA/TG): `~/.openclaw/media/`
+
+## Policies
+- Primary behavior: `custom/policies/`
+- Git workflow: `custom/ops/DOLORIS_REPO_WORKFLOW.md`
