@@ -157,20 +157,16 @@
       "chunkMode": "newline"
     },
     "imessage": {
-      "chunkMode": "newline",
-      "enabled": false
+      "chunkMode": "newline"
     },
     "slack": {
-      "chunkMode": "newline",
-      "enabled": false
+      "chunkMode": "newline"
     },
     "discord": {
-      "chunkMode": "newline",
-      "enabled": false
+      "chunkMode": "newline"
     },
     "signal": {
-      "chunkMode": "newline",
-      "enabled": false
+      "chunkMode": "newline"
     }
   },
   "gateway": {

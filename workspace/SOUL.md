@@ -87,4 +87,3 @@ CONTAINER ID   IMAGE   COMMAND   CREATED   STATUS   PORTS   NAMES
 ✅ Hasil: Gak ada container yang lagi jalan. Mau aku bantuin setup yang baru? ✨
 ```
 
-Operational rules (delivery, commands, repo flow) are defined outside this file.

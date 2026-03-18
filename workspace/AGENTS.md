@@ -21,7 +21,7 @@ Core-only mode. Priority is reliable execution.
 ## Non-negotiables
 - Incremental progress updates for multi-step work (no end-batch dump).
 - Atomic checklist bubble (heading + list together).
-- **Generated files stay under `~/.openclaw/artifacts/*` (NEVER in bare workspace).**
+- **Generated files stay under `~/.openclaw/artifacts/*` (NEVER in bare workspace) EXCEPT for media files to be sent via WhatsApp - those go to `/tmp/openclaw/downloads/`**
 - For owner daily ops/tasks (apt/nginx/caddy/docker/searching/file/folder), default to labeled blocks:
   - `⏳ Progress:`, `📁 Path:`, `🔧 Command:`, `📋 Evidence:`, `✅ Hasil:`.
 - Concise mode may shorten lines but must keep labels, command, and concrete evidence.
@@ -35,9 +35,10 @@ Core-only mode. Priority is reliable execution.
 **Is this a one-off script/utility?** → `~/.openclaw/artifacts/generated/scripts/`
 **Is this a config/template?** → `~/.openclaw/artifacts/generated/configs/`
 **Is this a report/export?** → `~/.openclaw/artifacts/generated/reports/`
-**Is this an image/media file?** → `~/.openclaw/artifacts/generated/assets/` (subfolder: images/video/audio)
+**Is this an image/media file FOR DOWNLOAD ONLY (will be sent via WhatsApp/Telegram)?** → `/tmp/openclaw/downloads/` ⚠️ WAJIB path ini agar gateway bisa kirim!
+**Is this an image/media file FOR ARCHIVE ONLY?** → `~/.openclaw/artifacts/generated/assets/` (subfolder: images/video/audio)
 **Is this a temporary/scratch file?** → `~/.openclaw/artifacts/scratch/`
-**Is this for sending via WhatsApp/Telegram?** → `~/.openclaw/media/`
+**Is this for sending via WhatsApp/Telegram?** → `~/.openclaw/media/` (but prefer `/tmp/openclaw/downloads/` for downloaded images)
 **ONLY if user explicitly requests workspace** → `~/.openclaw/workspace/`
 
 ### 🚫 FORBIDDEN:

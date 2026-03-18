@@ -32,9 +32,11 @@ class MediaRootsPatch(Patch):
 
     def _files(self) -> list[Path]:
         files = set(self.find_files("fetch-*.js"))
+        files |= set(self.find_files("auth-profiles-*.js"))
         sdk = self.dist_dir / "plugin-sdk"
         if sdk.is_dir():
             files |= set(sdk.glob("fetch-*.js"))
+            files |= set(sdk.glob("auth-profiles-*.js"))
         return sorted(files)
 
     def check(self) -> PatchStatus:

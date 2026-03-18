@@ -2,21 +2,28 @@
 
 from __future__ import annotations
 
+import re
+
 from ..core import Patch, PatchResult, PatchStatus
 
-OLD_BLOCK = """\tconst openClawTmpDir = path.resolve(resolvePreferredOpenClawTmpDir());
-\tif (!isPathInside(openClawTmpDir, resolved)) return;
-\tawait assertNoTmpAliasEscape({
-\t\tfilePath: resolved,
-\t\ttmpRoot: openClawTmpDir
-\t});
-\treturn resolved;"""
 
-NEW_BLOCK = """\tconst openClawTmpDir = path.resolve(resolvePreferredOpenClawTmpDir());
+class MediaSendPathsPatch(Patch):
+    name = "media_send_paths"
+    description = "Allow send attachment paths from ~/.openclaw/media and ~/.openclaw/artifacts"
+    dependencies = ["media_roots"]
+
+    # Regex pattern to match both minified (isPathInside$1) and non-minified (isPathInside) code
+    OLD_PATTERN = re.compile(
+        r'const openClawTmpDir = path\.resolve\(resolvePreferredOpenClawTmpDir\(\)\);\s*'
+        r'if \(!isPathInside(\$\d+)?\(openClawTmpDir, resolved\)\) return;',
+        re.MULTILINE
+    )
+    
+    NEW_BLOCK = """\tconst openClawTmpDir = path.resolve(resolvePreferredOpenClawTmpDir());
 \tconst configStateDir = path.resolve(CONFIG_DIR);
 \tconst mediaStateDir = path.join(configStateDir, \"media\");
 \tconst artifactsStateDir = path.join(configStateDir, \"artifacts\");
-\tconst allowedRoot = [openClawTmpDir, mediaStateDir, artifactsStateDir].find((root) => isPathInside(root, resolved));
+\tconst allowedRoot = [openClawTmpDir, mediaStateDir, artifactsStateDir].find((root) => isPathInside$1(root, resolved));
 \tif (!allowedRoot) return;
 \tif (allowedRoot === openClawTmpDir) {
 \t\tawait assertNoTmpAliasEscape({
@@ -26,18 +33,18 @@ NEW_BLOCK = """\tconst openClawTmpDir = path.resolve(resolvePreferredOpenClawTmp
 \t}
 \treturn resolved;"""
 
-
-class MediaSendPathsPatch(Patch):
-    name = "media_send_paths"
-    description = "Allow send attachment paths from ~/.openclaw/media and ~/.openclaw/artifacts"
-    dependencies = ["media_roots"]
-
     def _files(self):
         files = list(self.find_files("skills-*.js"))
+        files += list(self.find_files("auth-profiles-*.js"))
         sdk = self.dist_dir / "plugin-sdk"
         if sdk.is_dir():
             files += list(sdk.glob("skills-*.js"))
+            files += list(sdk.glob("auth-profiles-*.js"))
         return sorted(set(files))
+
+    def _is_patched(self, data: str) -> bool:
+        """Check if file is already patched by looking for artifacts reference"""
+        return "path.join(configStateDir, \"artifacts\")" in data
 
     def check(self) -> PatchStatus:
         files = self._files()
@@ -51,9 +58,9 @@ class MediaSendPathsPatch(Patch):
             if "async function resolveAllowedTmpMediaPath(params)" not in data:
                 continue
             targets += 1
-            if "path.join(configStateDir, \"artifacts\")" in data:
+            if self._is_patched(data):
                 patched += 1
-            elif OLD_BLOCK not in data:
+            elif not self.OLD_PATTERN.search(data):
                 unknown += 1
         if targets == 0:
             return PatchStatus.NOT_APPLIED
@@ -71,13 +78,21 @@ class MediaSendPathsPatch(Patch):
                 data = f.read_text(encoding="utf-8", errors="ignore")
                 if "async function resolveAllowedTmpMediaPath(params)" not in data:
                     continue
-                if "path.join(configStateDir, \"artifacts\")" in data:
+                if self._is_patched(data):
                     continue
-                if OLD_BLOCK not in data:
+                
+                match = self.OLD_PATTERN.search(data)
+                if not match:
                     files_failed.append(f)
                     continue
+                
+                # Get the captured group (e.g., "$1" or None)
+                suffix = match.group(1) or ""
+                new_block = self.NEW_BLOCK.replace("isPathInside$1", f"isPathInside{suffix}")
+                
                 self.backup_file(f)
-                f.write_text(data.replace(OLD_BLOCK, NEW_BLOCK, 1), encoding="utf-8")
+                new_data = data[:match.start()] + new_block + data[match.end():]
+                f.write_text(new_data, encoding="utf-8")
                 files_modified.append(f)
             except Exception:
                 files_failed.append(f)
