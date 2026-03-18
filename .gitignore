@@ -13,16 +13,11 @@ update-check.json
 cron/
 delivery-queue/
 
-# Local runtime/test artifacts
-patcher/__pycache__/
+# Browser/Telegram state
 browser/
 telegram/
 
-# Workspace state
-workspace/**/.openclaw/
-workspace/doloris/memory/heartbeat-state.json
-
-# Media
+# Media (generated files)
 media/
 
 # SQLite / db files
@@ -45,7 +40,7 @@ exec-approvals.json
 !scripts/
 !scripts/*.sh
 
-# Config backups (but openclaw.json is tracked for private backup/sync between deployments)
+# Reports and artifacts
 backups/
 openclaw.json.bak
 openclaw.json.bak.*
@@ -54,26 +49,18 @@ reports/*.md
 !reports/README.md
 artifacts/
 
-# Python cache (anywhere in project)
-__pycache__/
+# Python cache
 **/__pycache__/
 *.py[cod]
-*.class
+*.so
 
-# Wrangler/Cloudflare (anywhere in project)
-.wrangler/
+# Wrangler/Cloudflare
 **/.wrangler/
 
 # Backup files
 *.backup
 *.backup-*
 
-# Test artifacts
-workspace/test*.js
-workspace/test*.py
-
-# Images in workspace
-workspace/*.b64
-workspace/*.jpeg
-workspace/*.jpg
-workspace/*.png
+# Workspace generated content (follow workspace rules in AGENTS.md)
+workspace/**/.openclaw/
+workspace/**/memory/heartbeat-state.json
