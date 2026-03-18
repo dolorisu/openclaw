@@ -53,3 +53,27 @@ reports/*.json
 reports/*.md
 !reports/README.md
 artifacts/
+
+# Python cache (anywhere in project)
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.class
+
+# Wrangler/Cloudflare (anywhere in project)
+.wrangler/
+**/.wrangler/
+
+# Backup files
+*.backup
+*.backup-*
+
+# Test artifacts
+workspace/test*.js
+workspace/test*.py
+
+# Images in workspace
+workspace/*.b64
+workspace/*.jpeg
+workspace/*.jpg
+workspace/*.png
