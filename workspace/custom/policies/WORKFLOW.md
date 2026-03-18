@@ -70,8 +70,38 @@ def test():
 4. **Property/value pairs must be indented from parent**
 5. **Code blocks inside functions must be indented**
 
+### 🔧 MANDATORY TOOL USAGE for JSON:
+**ALWAYS format JSON using tool before sending:**
+
+```bash
+# WAJIB gunakan ini untuk format JSON dengan indentasi 2 spaces
+echo '{"id":1,"nama":"test"}' | python3 -m json.tool --indent 2
+```
+
+**Workflow:**
+1. Generate JSON
+2. **WAJIB** format pakai `python3 -m json.tool --indent 2`
+3. **WAJIB** simpan hasil ke file dulu
+4. **WAJIB** read file untuk verifikasi indentasi
+5. Kirim yang sudah di-format
+
+**Contoh lengkap:**
+```bash
+# Step 1: Buat JSON
+echo '[{"id":1,"nama":"Budi"},{"id":2,"nama":"Ani"}]' > /tmp/data.json
+
+# Step 2: Format dengan 2 spaces
+python3 -m json.tool --indent 2 /tmp/data.json > /tmp/formatted.json
+
+# Step 3: Verifikasi dan kirim
+cat /tmp/formatted.json
+```
+
+**JANGAN pernah kirim JSON langsung dari generate AI tanpa format tool!**
+
 ### 🔴 IF you output code with wrong indentation:
 - **STOP and regenerate**
+- **Use formatting tool (json.tool, prettier, etc.)**
 - **DO NOT send flat/minified code**
 - **Always use proper formatting**
 
