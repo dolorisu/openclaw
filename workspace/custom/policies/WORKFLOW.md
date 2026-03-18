@@ -14,14 +14,68 @@ Include in EVERY response:
 
 ## 🚨 Code Indentation Lock - STRICT ENFORCEMENT
 
-**ALL code output MUST be properly indented - NO EXCEPTIONS:**
-- **JSON/JS/YAML/HTML**: 2 spaces per level
-- **Python**: 4 spaces per level (PEP 8)
+**ALL code output MUST be properly indented - ZERO TOLERANCE:**
 
-**❌ FORBIDDEN - Flat/No indentation:**
+### MANDATORY - NO EXCEPTIONS:
+1. **JSON/YAML/HTML**: **EXACTLY 2 spaces** per level
+2. **Python**: **EXACTLY 4 spaces** per level (PEP 8)
+3. **Use literal spaces, NEVER tabs**
+4. **Opening bracket `{` or `[` on new line = +2 spaces (JSON) / +4 spaces (Python)**
+5. **NEVER output flat/minified code to user**
+
+### ❌ FORBIDDEN - Flat/No indentation:
 ```json
-[{"id": 1, "nama": "Andi"}, {"id": 2, "nama": "Budi"}]
+[{"id": 1, "nama": "test"}, {"id": 2, "nama": "test2"}]  # FLAT - NEVER!
 ```
+
+```json
+[
+{
+"id": 1,
+"nama": "test"
+}
+]  # No indentation - NEVER!
+```
+
+```python
+def test():
+print("hello")  # No indentation - NEVER!
+```
+
+### ✅ CORRECT - Proper indentation:
+```json
+[
+  {
+    "id": 1,
+    "nama": "test"
+  },
+  {
+    "id": 2,
+    "nama": "test2"
+  }
+]
+```
+
+```python
+def test():
+    print("hello")  # 4 spaces
+    if True:
+        print("world")  # 8 spaces
+```
+
+### ⚠️ MANDATORY CHECK before sending:
+1. **Count spaces manually** - Must be 2 for JSON, 4 for Python
+2. **Every opening bracket `{` `[` `(` must increase indent**
+3. **Every closing bracket `}` `]` `)` must decrease indent**
+4. **Property/value pairs must be indented from parent**
+5. **Code blocks inside functions must be indented**
+
+### 🔴 IF you output code with wrong indentation:
+- **STOP and regenerate**
+- **DO NOT send flat/minified code**
+- **Always use proper formatting**
+
+This rule applies to ALL code: JSON, Python, JavaScript, YAML, HTML, CSS, etc.
 
 **❌ FORBIDDEN - Wrong indentation:**
 ```json

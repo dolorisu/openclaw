@@ -1,7 +1,7 @@
 {
   "meta": {
-    "lastTouchedVersion": "2026.3.7",
-    "lastTouchedAt": "2026-03-18T11:59:20.668Z"
+    "lastTouchedVersion": "2026.3.2",
+    "lastTouchedAt": "2026-03-08T18:17:54.022Z"
   },
   "wizard": {
     "lastRunAt": "2026-03-08T18:17:53.972Z",
@@ -125,7 +125,6 @@
         "*"
       ],
       "groupPolicy": "open",
-      "chunkMode": "newline",
       "groups": {
         "*": {
           "requireMention": true
@@ -135,18 +134,16 @@
         },
         "120363425302186820@g.us": {
           "requireMention": false
-        },
-        "120363406118312223@g.us": {
-          "requireMention": false
         }
       },
       "ackReaction": {
-        "emoji": "🌙",
+        "emoji": "\ud83c\udf19",
         "direct": false,
         "group": "never"
       },
       "debounceMs": 0,
-      "mediaMaxMb": 50
+      "mediaMaxMb": 50,
+      "chunkMode": "newline"
     },
     "telegram": {
       "enabled": true,
@@ -156,36 +153,24 @@
         "849612359"
       ],
       "groupPolicy": "allowlist",
-      "chunkMode": "newline",
-      "streaming": "partial"
-    },
-    "discord": {
-      "enabled": true,
-      "groupPolicy": "allowlist",
-      "chunkMode": "newline",
-      "streaming": "off"
-    },
-    "slack": {
-      "mode": "socket",
-      "webhookPath": "/slack/events",
-      "enabled": true,
-      "userTokenReadOnly": true,
-      "groupPolicy": "allowlist",
-      "chunkMode": "newline",
-      "nativeStreaming": true,
-      "streaming": "partial"
-    },
-    "signal": {
-      "enabled": true,
-      "dmPolicy": "pairing",
-      "groupPolicy": "allowlist",
+      "streaming": "partial",
       "chunkMode": "newline"
     },
     "imessage": {
-      "enabled": true,
-      "dmPolicy": "pairing",
-      "groupPolicy": "allowlist",
-      "chunkMode": "newline"
+      "chunkMode": "newline",
+      "enabled": false
+    },
+    "slack": {
+      "chunkMode": "newline",
+      "enabled": false
+    },
+    "discord": {
+      "chunkMode": "newline",
+      "enabled": false
+    },
+    "signal": {
+      "chunkMode": "newline",
+      "enabled": false
     }
   },
   "gateway": {
